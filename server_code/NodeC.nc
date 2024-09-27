@@ -31,9 +31,6 @@ implementation {
     components CommandHandlerC;
     Node.CommandHandler -> CommandHandlerC;
 
-    // components CalculateC
-    // Node.Calculate -> CalculateC;
-
     components FloodingC;
     Node.Flooding -> FloodingC;
 

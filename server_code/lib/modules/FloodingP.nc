@@ -5,9 +5,9 @@
 module FloodingP{
     provides interface Flooding;
 
-    uses interface Packet;
-    uses interface AMPacket;
-    uses interface AMSend;
+    // uses interface Packet;
+    // uses interface AMPacket;
+    // uses interface AMSend;
 }
 implementation{
     command void Flooding.pass(){}
