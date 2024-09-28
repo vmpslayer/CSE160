@@ -1,7 +1,4 @@
-#include "../../includes/packet.h"
-#include "../../includes/command.h"
-#include "../../includes/channels.h"
-#include "../../includes/sendInfo.h"
 interface Flooding{
+    // command void flood(pack* msg);
     command void pass();
 }

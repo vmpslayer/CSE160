@@ -52,11 +52,6 @@ implementation{
                 dbg(COMMAND_CHANNEL, "Command Type: Ping\n");
                 signal CommandHandler.ping(buff[0], &buff[1]);
                 break;
-            
-            // case CMD_CALCULATE:
-            //     dbg(GENERAL_CHANNEL, "Command Type: Calculate\n");
-            //     signal CommandHandler.calculate(buff[0], buff[1], buff[2]);
-            //     break;
 
             case CMD_NEIGHBOR_DUMP:
                 dbg(COMMAND_CHANNEL, "Command Type: Neighbor Dump\n");

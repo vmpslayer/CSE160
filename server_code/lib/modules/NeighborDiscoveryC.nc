@@ -1,10 +1,4 @@
 // Config file
-#include <Timer.h>
-#include "../../includes/command.h"
-#include "../../includes/packet.h"
-#include "../../includes/CommandMsg.h"
-#include "../../includes/sendInfo.h"
-#include "../../includes/channels.h"
 #include "../../includes/am_types.h"
 configuration NeighborDiscoveryC
 {
@@ -15,16 +9,15 @@ implementation // Specifies wiring
     components NeighborDiscoveryP;
     NeighborDiscovery = NeighborDiscoveryP.NeighborDiscovery;
 
+    // Timers
     components new TimerMilliC() as discoveryTimer;
-    components MainC;
-
-    // // Timers
     NeighborDiscoveryP.discoveryTimer -> discoveryTimer;
-    NeighborDiscoveryP.Boot -> MainC.Boot;
+    components RandomC as Random;
+    NeighborDiscoveryP.Random -> Random;
 
-    // NeighborDiscoveryP.Packet -> AMSenderC;
-    // NeighborDiscoveryP.AMPacket -> AMSenderC;
-    // NeighborDiscoveryP.AMSend -> AMSenderC;
-
-    // NeighborDiscoveryP.AMReceiverC -> AMReceiverC;
+    // Ping & Reply
+    components new SimpleSendC(AM_PACK) as Sender;
+    components new AMReceiverC(AM_PACK) as Receiver;
+    NeighborDiscoveryP.Sender-> Sender;
+    NeighborDiscoveryP.Receiver -> Receiver;
 }

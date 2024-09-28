@@ -12,5 +12,8 @@ implementation // Specifies wiring
     components FloodingP;
     Flooding = FloodingP.Flooding;
 
-    //Timers
+    // components new SimpleSendC(AM_PACK) as Sender;
+    // components new AMReceiverC(AM_PACK) as Receiver;
+    // FloodingP.Sender-> Sender;
+    // FloodingP.Receiver -> Receiver;
 }
