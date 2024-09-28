@@ -123,8 +123,9 @@ class TestSim:
         
     # def calculate(self,)
     
+    def flood(self, source, msg):
+        self.sendCMD(self.CMD_CALCULATE, source, msg);
     
-    # def flooding(self, ID, destination, )
     def neighborDMP(self, destination):
         self.sendCMD(self.CMD_NEIGHBOR_DUMP, destination, "neighbor command");
 
@@ -144,13 +145,14 @@ def main():
     # s.addChannel(s.COMMAND_CHANNEL);
     # s.addChannel(s.GENERAL_CHANNEL);
     s.addChannel(s.NEIGHBOR_CHANNEL);
-    # s.addChannel(s.FLOODING_CHANNEL);
+    s.addChannel(s.FLOODING_CHANNEL);
 
     s.runTime(20);
     s.ping(1, 2, "Hello, World");
     s.runTime(10);
     s.ping(1, 3, "Hi!");
     s.runTime(20);
+    s.flood(1, "Open the floodgates!");
         
     # s.runTime(50);
     # s.flood(2, 18, "Sending Flood Message: Hi!")

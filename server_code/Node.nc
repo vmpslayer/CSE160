@@ -72,6 +72,11 @@ implementation{
       call Sender.send(sendPackage, destination);
    }
 
+   event void Flooding.floodReceive(message_t* msg, void* payload, uint8_t len){
+      pack* receivedPacket = (pack*) payload;
+      dbg(FLOODING_CHANNEL, "Node %d received flood packet from node %d\n", TOS_NODE_ID, receivedPacket->src);
+   }
+
    event void CommandHandler.printNeighbors(){}
 
    event void CommandHandler.printRouteTable(){}
