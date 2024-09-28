@@ -14,6 +14,7 @@ class TestSim:
     CMD_NEIGHBOR_DUMP = 1
     CMD_ROUTE_DUMP=3
     CMD_CALCULATE = 10
+    CMD_FLOOD = 11
 
     # CHANNELS - see includes/channels.h
     COMMAND_CHANNEL="command";
@@ -124,7 +125,7 @@ class TestSim:
     # def calculate(self,)
     
     def flood(self, source, msg):
-        self.sendCMD(self.CMD_CALCULATE, source, msg);
+        self.sendCMD(self.CMD_FLOOD, 0xFFFF, msg);
     
     def neighborDMP(self, destination):
         self.sendCMD(self.CMD_NEIGHBOR_DUMP, destination, "neighbor command");
@@ -142,8 +143,8 @@ def main():
     s.loadTopo("long_line.topo");
     s.loadNoise("no_noise.txt");
     s.bootAll();
-    # s.addChannel(s.COMMAND_CHANNEL);
-    # s.addChannel(s.GENERAL_CHANNEL);
+    s.addChannel(s.COMMAND_CHANNEL);
+    s.addChannel(s.GENERAL_CHANNEL);
     s.addChannel(s.NEIGHBOR_CHANNEL);
     s.addChannel(s.FLOODING_CHANNEL);
 
