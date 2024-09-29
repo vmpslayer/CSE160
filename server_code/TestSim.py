@@ -13,8 +13,6 @@ class TestSim:
     CMD_PING = 0
     CMD_NEIGHBOR_DUMP = 1
     CMD_ROUTE_DUMP=3
-    CMD_CALCULATE = 10
-    CMD_FLOOD = 11
 
     # CHANNELS - see includes/channels.h
     COMMAND_CHANNEL="command";
@@ -113,19 +111,16 @@ class TestSim:
     def sendCMD(self, ID, dest, payloadStr):
         self.msg.set_dest(dest);
         self.msg.set_id(ID);
-        self.msg.setString_payload(payloadStr)
+        self.msg.setString_payload(payloadStr);
 
-        self.pkt.setData(self.msg.data)
-        self.pkt.setDestination(dest)
-        self.pkt.deliver(dest, self.t.time()+5)
+        self.pkt.setData(self.msg.data);
+        self.pkt.setDestination(dest);
+        self.pkt.deliver(dest, self.t.time()+5);
 
     def ping(self, source, dest, msg):
         self.sendCMD(self.CMD_PING, source, "{0}{1}".format(chr(dest),msg));
         
     # def calculate(self,)
-    
-    def flood(self, source, msg):
-        self.sendCMD(self.CMD_FLOOD, 0xFFFF, msg);
     
     def neighborDMP(self, destination):
         self.sendCMD(self.CMD_NEIGHBOR_DUMP, destination, "neighbor command");
@@ -153,7 +148,6 @@ def main():
     s.runTime(10);
     s.ping(1, 3, "Hi!");
     s.runTime(20);
-    s.flood(1, "Open the floodgates!");
         
     # s.runTime(50);
     # s.flood(2, 18, "Sending Flood Message: Hi!")

@@ -63,24 +63,11 @@ implementation{
       return msg;
    }
 
-
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n");
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       call Sender.send(sendPackage, destination);
    }
-
-   event message_t* Flooding.receive(message_t* msg, void* payload, uint8_t len){
-        pack *receivedPacket = (pack*) payload;
-
-        if(receivedPacket->TTL > 0){
-            receivedPacket->TTL--;
-
-            call Flooding.flood(*receivedPacket, receivedPacket->src);
-        }
-
-        return msg;
-    }
    
    event void CommandHandler.printNeighbors(){}
 
