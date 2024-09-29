@@ -23,8 +23,6 @@ module Node{
 
    uses interface CommandHandler;
 
-   // uses interface Calculate;
-
    uses interface Flooding;
 
    uses interface NeighborDiscovery;
@@ -72,6 +70,18 @@ implementation{
       call Sender.send(sendPackage, destination);
    }
 
+   event message_t* Flooding.receive(message_t* msg, void* payload, uint8_t len){
+        pack *receivedPacket = (pack*) payload;
+
+        if(receivedPacket->TTL > 0){
+            receivedPacket->TTL--;
+
+            call Flooding.flood(*receivedPacket, receivedPacket->src);
+        }
+
+        return msg;
+    }
+   
    event void CommandHandler.printNeighbors(){}
 
    event void CommandHandler.printRouteTable(){}
