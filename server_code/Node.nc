@@ -38,6 +38,7 @@ implementation{
       call AMControl.start();
       dbg(GENERAL_CHANNEL, "Booted\n");
       call NeighborDiscovery.findNeighbor();
+      call NeighborDiscovery.checkNeighbor();
       //call lineApp.start;
    }
 
@@ -66,18 +67,22 @@ implementation{
                return msg;
                break;
             case 7:
+               // Upon reception of a neighbor discovery packet, receiving node must reply back
                if(myMsg->dest == AM_BROADCAST_ADDR){
                   myMsg->dest = myMsg->src;
                   myMsg->src = TOS_NODE_ID;
-                  myMsg->protocol = PROTOCOL_PINGREPLY;
                   call Sender.send(*myMsg, myMsg->dest);
                }
                else if(myMsg->dest == TOS_NODE_ID){
-                  dbg(NEIGHBOR_CHANNEL, "Node %d has new Neighbor: Node %d\n", myMsg->src, myMsg->dest);
                   call NeighborDiscovery.addNeighbor(myMsg->src, myMsg->dest);
                }
                return msg;
                break;
+            
+            case 8:
+               if(myMsg->dest != TOS_NODE_ID){
+                  call NeighborDiscovery.removeNeighbor(myMsg->src, myMsg->dest);
+               }
          }
       }
       dbg(GENERAL_CHANNEL, "Unknown Packet Type %d\n", len);

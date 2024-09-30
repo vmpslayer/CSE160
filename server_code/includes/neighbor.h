@@ -12,7 +12,6 @@ enum{
 
 typedef nx_struct Neighbor{
     nx_uint8_t address; // Identifier for node
-    nx_uint8_t neighbors[MAX_NEIGHBORS];
     nx_uint16_t pktReceived; // For calculations, X = total packets received
     nx_uint16_t pktSent; // For calculations, Y = total packets sent
 } Neighbor;

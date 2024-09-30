@@ -5,6 +5,9 @@
 #include "../../includes/am_types.h"
 module FloodingP{
     provides interface Flooding;
+
+    // uses interface Timer<TMilli> as floodTimer;
+    uses interface SimpleSend as Sender;
 }
 implementation{
     /*
@@ -37,9 +40,27 @@ implementation{
     If not, it will check if it has received the packet before. If it has not,
     it will rebroadcast too all available nodes.
     */
+    bool flooding = FALSE;
+
+    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
+        Package->src = src;
+        Package->dest = dest;
+        Package->TTL = TTL;
+        Package->seq = seq;
+        Package->protocol = protocol;
+        memcpy(Package->payload, payload, length);
+    }
+
     command error_t Flooding.flood(pack msg, uint16_t dest){
         dbg(FLOODING_CHANNEL, "Flooding?\n");
         // If the packet has reached its destination 
         return SUCCESS;
     }
+
+    // event floodTimer.fired(){
+    //     pack pkt;
+    //     if(flooding){
+
+    //     }
+    // }
 }

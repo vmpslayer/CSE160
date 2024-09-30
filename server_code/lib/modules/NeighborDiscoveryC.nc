@@ -12,8 +12,9 @@ implementation // Specifies wiring
     // Timers
     components new TimerMilliC() as discoveryTimer;
     NeighborDiscoveryP.discoveryTimer -> discoveryTimer;
-    components RandomC as Random;
-    NeighborDiscoveryP.Random -> Random;
+
+    components new TimerMilliC() as neighorCheckTimer;
+    NeighborDiscoveryP.neighorCheckTimer -> neighorCheckTimer;
 
     // Ping & Reply
     components new SimpleSendC(AM_PACK) as Sender;
