@@ -1,4 +1,4 @@
-#include "../../includes/neighbor.h"
+#include "../../includes/node.h"
 
 module NeighborDiscoveryP{
     provides interface NeighborDiscovery;
@@ -26,10 +26,9 @@ implementation{
         // Quality of Link
         // Active Neighbor
     bool active = FALSE; // 0 = Receiving; 1 = Sending
-    bool deadNeighbor = FALSE;
-    Neighbor nodeTable[MAX_NODES];
-    uint8_t nodeTableIndex = 0;
-    uint8_t neighborIndex = 0;
+    bool deadNeighbor = FALSE; // Dead Neighbor Check // 0 = inactive, 1 = active
+    Node device; // House all information; address, pkt sent/receive
+    uint8_t nodeTable[MAX_NEIGHBORS]; // Houses just THIS node's neighbors
 
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
         Package->src = src;
@@ -40,39 +39,29 @@ implementation{
         memcpy(Package->payload, payload, length);
     }
 
-    command void NeighborDiscovery.addNeighbor(uint8_t node, uint8_t neighbor){
-        uint8_t i = 0;
-        nodeTable[node].address = node;
-        for(i; i < MAX_NEIGHBORS; i++){
-            if(nodeTable[node].neighbors[i] == 0){
-                nodeTable[node].neighbors[i] = neighbor;
-                dbg(NEIGHBOR_CHANNEL, "Node %d has a new neighbor, %d\n", node, neighbor);
-                break;
-            }
-        }
+    command void NeighborDiscovery.addNeighbor(uint8_t device, uint8_t neighbor){
+        uint8_t nodeTableIndex = 0;
+        nodeTable[nodeTableIndex] = neighbor;
+        dbg(NEIGHBOR_CHANNEL, "Node %d has a new neighbor, %d\n", device, neighbor);
+        nodeTableIndex++;
         // nodeTable[nodeTableIndex].address = node;
         // nodeTable[nodeTableIndex].neighbors[neighborIndex] = neighbor;
     }
 
     void refreshTable(){
         uint8_t i = 0;
-        uint8_t j = 0;
-        for(i; i < MAX_NODES; i++){
-            for(j; j < MAX_NEIGHBORS; j++){
-                nodeTable[i].neighbors[j] == 0;
-            }
+
+        for(i; i < MAX_NEIGHBORS; i++){
+            nodeTable[i] == 0;
         }
         dbg(NEIGHBOR_CHANNEL, "Node Table Refreshed\n");
     }
 
     command void NeighborDiscovery.listHood(){
         uint8_t i = 0;
-        uint8_t j = 0;
-        for(i; i < MAX_NODES; i++){
-            dbg(NEIGHBOR_CHANNEL, "Node %d Address: %u\n", i, nodeTable[i].address);
-            for(j; j < MAX_NEIGHBORS; j++){
-                dbg(NEIGHBOR_CHANNEL, "Node %d's Neighbor %d: %u\n", i, j, nodeTable[i].neighbors[j]);
-            }
+
+        for(i; i < MAX_NEIGHBORS; i++){
+            dbg(NEIGHBOR_CHANNEL, "Node %d's Neighbor: %u\n", device.address, nodeTable[i]);
         }
     }
 
@@ -100,7 +89,7 @@ implementation{
     event void discoveryTimer.fired(){
         pack pkt;
         if(active){
-            makePack(&pkt, TOS_NODE_ID, 0, 0, PROTOCOL_NEIGHBOR, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+            makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_NEIGHBOR, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
             if(call Sender.send(pkt, AM_BROADCAST_ADDR) == SUCCESS){
                 dbg(NEIGHBOR_CHANNEL, "Neighbor Discovery message sent\n");
             }
@@ -114,12 +103,14 @@ implementation{
 
     event void neighorCheckTimer.fired(){
         pack pkt;
+
         if(deadNeighbor){
             uint8_t i = 0;
+
             for(i; i < MAX_NEIGHBORS; i++){
-                makePack(&pkt, TOS_NODE_ID, nodeTable[TOS_NODE_ID].neighbors[i], 0, PROTOCOL_CHECK, 0, "Check Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
-                if(call Sender.send(pkt, nodeTable[TOS_NODE_ID].neighbors[i]) == SUCCESS){
-                    dbg(NEIGHBOR_CHANNEL, "Dead Neighbor Check\n");
+                makePack(&pkt, TOS_NODE_ID, nodeTable[i], 0, PROTOCOL_CHECK, 0, "Check Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+                if(call Sender.send(pkt, nodeTable[i]) == SUCCESS){
+                    // dbg(NEIGHBOR_CHANNEL, "Dead Neighbor Check\n");
                 }
                 else{
                     dbg(NEIGHBOR_CHANNEL, "CANNOT check for Dead Neighbors\n");
@@ -128,12 +119,13 @@ implementation{
         }
     }
 
-    command void NeighborDiscovery.removeNeighbor(uint8_t node, uint8_t neighbor){
+    command void NeighborDiscovery.removeNeighbor(uint8_t device, uint8_t neighbor){
         uint8_t i = 0;
+
         for(i; i < MAX_NEIGHBORS; i++){
-            if(nodeTable[TOS_NODE_ID].neighbors[i] != 0){
-                nodeTable[TOS_NODE_ID].neighbors[i] = 0;
-                dbg(NEIGHBOR_CHANNEL, "Node %d has a DEAD neighbor, %d\n", node, neighbor);
+            if(nodeTable[i] != 0){
+                nodeTable[i] = 0;
+                dbg(NEIGHBOR_CHANNEL, "Node %d has a DEAD neighbor, %d\n", device, neighbor);
                 break;
             }
         }
