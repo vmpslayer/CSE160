@@ -152,6 +152,11 @@ def main():
     # s.runTime(50);
     # s.flood(2, 18, "Sending Flood Message: Hi!")
     # s.runTime(30);
+    
+    s.runTime(30);
+    s.neighborDMP(1);
+    s.runTime(20);
+    s.neighborDMP(2);
 
 if __name__ == '__main__':
     main()
