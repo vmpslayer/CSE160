@@ -32,8 +32,9 @@ implementation{
         // Quality of Link
         // Active Neighbor
     bool active = FALSE; // 0 = Receiving; 1 = Sending
-    Neighbor nodeTable[10];
+    Neighbor nodeTable[MAX_NODES];
     uint8_t nodeTableIndex = 0;
+    uint8_t neighborIndex = 0;
 
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
         Package->src = src;
@@ -45,15 +46,26 @@ implementation{
     }
 
     void addNeighbor(uint8_t node, uint8_t neighbor){
-        uint8_t neighborIndex = 0;
-        nodeTable[nodeTableIndex].address = node;
-        nodeTable[nodeTableIndex].neighbors[neighborIndex] = neighbor;
+        uint8_t i = 0;
+        for(i; i < MAX_NEIGHBORS; i++){
+            if(nodeTable[node].neighbors[i] == 0){
+                nodeTable[node].neighbors[i] = neighbor;
+                dbg(NEIGHBOR_CHANNEL, "Node %d has a new neighbor, %d\n", node, neighbor);
+            }
+        }
+
+        // nodeTable[nodeTableIndex].address = node;
+        // nodeTable[nodeTableIndex].neighbors[neighborIndex] = neighbor;
     }
 
     command void NeighborDiscovery.listNeighborhood(){
         uint8_t i = 0;
-        for(i; i < sizeof(nodeTable); i++){
-            dbg(NEIGHBOR_CHANNEL, "");
+        uint8_t j = 0;
+        for(i; i < MAX_NODES; i++){
+            dbg(NEIGHBOR_CHANNEL, "Node %d Address: %u\n", i, nodeTable[i].address);
+            for(j; j < MAX_NEIGHBORS; j++){
+                dbg(NEIGHBOR_CHANNEL, "Node %d's Neighbor %d: %u\n", i, j, nodeTable[i].neighbors[j]);
+            }
         }
     }
 
