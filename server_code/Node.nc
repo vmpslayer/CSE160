@@ -57,7 +57,7 @@ implementation{
       dbg(GENERAL_CHANNEL, "Packet Received\n");
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
-         dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
+         // dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
          // Checking what kind of packet received
          switch(myMsg->protocol){
             case 0:

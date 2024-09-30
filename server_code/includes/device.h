@@ -1,5 +1,5 @@
-#ifndef NODE_H
-#define NODE_H
+#ifndef DEVICE_H
+#define DEVICE_H
 
 #include "packet.h"
 #include "protocol.h"
@@ -9,15 +9,15 @@ enum{
     MAX_NEIGHBORS = 10,
 };
 
-typedef nx_struct Node{
+typedef nx_struct Device{
     nx_uint8_t address; // Identifier for node
     nx_uint16_t pktReceived; // For calculations, X = total packets received
     nx_uint16_t pktSent; // For calculations, Y = total packets sent
-} Node;
+} Device;
 
-void logNode(Node *node){
+void logDevice(Device *device){
 	dbg(GENERAL_CHANNEL, "Node Address: %hhu Packets Received: %hhu Packets Sent: %hhu\n",
-	node->address, node->pktReceived, node->pktSent);
+	device->address, device->pktReceived, device->pktSent);
 };
 
 #endif

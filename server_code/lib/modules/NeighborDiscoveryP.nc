@@ -1,4 +1,4 @@
-#include "../../includes/node.h"
+#include "../../includes/device.h"
 
 module NeighborDiscoveryP{
     provides interface NeighborDiscovery;
@@ -27,7 +27,7 @@ implementation{
         // Active Neighbor
     bool active = FALSE; // 0 = Receiving; 1 = Sending
     bool deadNeighbor = FALSE; // Dead Neighbor Check // 0 = inactive, 1 = active
-    Node device; // House all information; address, pkt sent/receive
+    Device device; // House all information; address, pkt sent/receive (wanted to use "node" but there are complications)
     uint8_t nodeTable[MAX_NEIGHBORS]; // Houses just THIS node's neighbors
 
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
@@ -39,28 +39,28 @@ implementation{
         memcpy(Package->payload, payload, length);
     }
 
-    command void NeighborDiscovery.addNeighbor(uint8_t device, uint8_t neighbor){
+    command void NeighborDiscovery.addNeighbor(uint8_t srcNode, uint8_t neighbor){
         uint8_t nodeTableIndex = 0;
         nodeTable[nodeTableIndex] = neighbor;
-        dbg(NEIGHBOR_CHANNEL, "Node %d has a new neighbor, %d\n", device, neighbor);
+        dbg(NEIGHBOR_CHANNEL, "Node %d has a new neighbor, %d\n", srcNode, neighbor);
         nodeTableIndex++;
         // nodeTable[nodeTableIndex].address = node;
         // nodeTable[nodeTableIndex].neighbors[neighborIndex] = neighbor;
     }
 
     void refreshTable(){
-        uint8_t i = 0;
+        uint8_t i;
 
-        for(i; i < MAX_NEIGHBORS; i++){
+        for(i = 0; i < MAX_NEIGHBORS; i++){
             nodeTable[i] == 0;
         }
         dbg(NEIGHBOR_CHANNEL, "Node Table Refreshed\n");
     }
 
     command void NeighborDiscovery.listHood(){
-        uint8_t i = 0;
+        uint8_t i;
 
-        for(i; i < MAX_NEIGHBORS; i++){
+        for(i = 0; i < MAX_NEIGHBORS; i++){
             dbg(NEIGHBOR_CHANNEL, "Node %d's Neighbor: %u\n", device.address, nodeTable[i]);
         }
     }
@@ -78,7 +78,7 @@ implementation{
     }
 
     command void NeighborDiscovery.checkNeighbor(){
-        dbg(NEIGHBOR_CHANNEL, "Checking for Neighbors\n");
+        dbg(NEIGHBOR_CHANNEL, "Checking for Alive Neighbors\n");
         if(!deadNeighbor){
             deadNeighbor = TRUE;
             call neighorCheckTimer.startPeriodic(5000);
@@ -98,16 +98,16 @@ implementation{
             }
         }
         active = FALSE;
-        dbg(NEIGHBOR_CHANNEL, "Discovery timer fired\n");
+        // dbg(NEIGHBOR_CHANNEL, "Discovery timer fired\n");
     }
 
     event void neighorCheckTimer.fired(){
         pack pkt;
 
         if(deadNeighbor){
-            uint8_t i = 0;
+            uint8_t i;
 
-            for(i; i < MAX_NEIGHBORS; i++){
+            for(i = 0; i < MAX_NEIGHBORS; i++){
                 makePack(&pkt, TOS_NODE_ID, nodeTable[i], 0, PROTOCOL_CHECK, 0, "Check Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
                 if(call Sender.send(pkt, nodeTable[i]) == SUCCESS){
                     // dbg(NEIGHBOR_CHANNEL, "Dead Neighbor Check\n");
@@ -119,13 +119,13 @@ implementation{
         }
     }
 
-    command void NeighborDiscovery.removeNeighbor(uint8_t device, uint8_t neighbor){
-        uint8_t i = 0;
+    command void NeighborDiscovery.removeNeighbor(uint8_t srcNode, uint8_t neighbor){
+        uint8_t i;
 
-        for(i; i < MAX_NEIGHBORS; i++){
-            if(nodeTable[i] != 0){
+        for(i = 0; i < MAX_NEIGHBORS; i++){
+            if(nodeTable[i] == neighbor){
                 nodeTable[i] = 0;
-                dbg(NEIGHBOR_CHANNEL, "Node %d has a DEAD neighbor, %d\n", device, neighbor);
+                dbg(NEIGHBOR_CHANNEL, "Node %d has a DEAD neighbor, %d\n", srcNode, neighbor);
                 break;
             }
         }

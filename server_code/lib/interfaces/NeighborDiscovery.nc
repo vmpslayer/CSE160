@@ -1,4 +1,4 @@
-#include "../../includes/node.h"
+#include "../../includes/device.h"
 #include "../../includes/packet.h"
 
 interface NeighborDiscovery{
