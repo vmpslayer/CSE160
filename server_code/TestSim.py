@@ -13,6 +13,7 @@ class TestSim:
     CMD_PING = 0
     CMD_NEIGHBOR_DUMP = 1
     CMD_ROUTE_DUMP=3
+    CMD_FLOOD=11
 
     # CHANNELS - see includes/channels.h
     COMMAND_CHANNEL="command";
@@ -132,6 +133,9 @@ class TestSim:
         print 'Adding Channel', channelName;
         self.t.addChannel(channelName, out);
 
+    def flood(self, source, dest, msg):
+        self.sendCMD(self.CMD_FLOOD, source, "{0}{1}".format(chr(dest),msg));
+
 def main():
     s = TestSim();
     s.runTime(10);
@@ -147,7 +151,10 @@ def main():
     s.ping(1, 2, "Hello, World");
     s.runTime(10);
     s.ping(1, 3, "Hi!");
+    s.runTime(10);
+    s.flood(1, 3, "Flood packet");
     s.runTime(20);
+
         
     # s.runTime(50);
     # s.flood(2, 18, "Sending Flood Message: Hi!")

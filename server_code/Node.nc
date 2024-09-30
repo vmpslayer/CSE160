@@ -57,9 +57,19 @@ implementation{
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
          dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
-         return msg;
+
+         // Checking what kind of packet received
+         switch(myMsg->protocol){
+            case 0:
+               return msg;
+               break;
+            case 6:
+               return msg;
+               break;
+         }
       }
       dbg(GENERAL_CHANNEL, "Unknown Packet Type %d\n", len);
+      // dbg(GENERAL_CHANNEL, "Unknown Packet Type %d\n", len);
       return msg;
    }
 
@@ -84,6 +94,13 @@ implementation{
    event void CommandHandler.setAppServer(){}
 
    event void CommandHandler.setAppClient(){}
+
+   event void CommandHandler.flood(uint16_t destination, uint8_t *payload){
+      dbg(GENERAL_CHANNEL, "FLOOD EVENT \n");
+      makePack(&sendPackage, TOS_NODE_ID, destination, 10, 6, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+      call Flooding.flood(sendPackage, AM_BROADCAST_ADDR);
+   }
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
       Package->src = src;

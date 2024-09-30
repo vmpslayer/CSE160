@@ -38,7 +38,7 @@ implementation{
     it will rebroadcast too all available nodes.
     */
     command error_t Flooding.flood(pack msg, uint16_t dest){
-
+        dbg(FLOODING_CHANNEL, "Flooding?\n");
         // If the packet has reached its destination 
         return SUCCESS;
     }
