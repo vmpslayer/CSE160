@@ -5,6 +5,8 @@
 #include "../../includes/am_types.h"
 module FloodingP{
     provides interface Flooding;
+
+    uses interface SimpleSend as Sender;
 }
 implementation{
     /*
@@ -37,8 +39,11 @@ implementation{
     If not, it will check if it has received the packet before. If it has not,
     it will rebroadcast too all available nodes.
     */
-    command error_t Flooding.flood(pack msg, uint16_t dest){
-        dbg(FLOODING_CHANNEL, "Flooding?\n");
+    command error_t Flooding.flood(pack payload){
+        pack* msg = (pack*) payload;
+        dbg(FLOODING_CHANNEL, "Flooding? %i\n", msg->TTL);
+        
+        call Sender.send(msg, AM_BROADCAST_ADDR);
         // If the packet has reached its destination 
         return SUCCESS;
     }

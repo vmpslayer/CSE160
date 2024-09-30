@@ -59,9 +59,11 @@ implementation{
          dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
          // Checking what kind of packet received
          switch(myMsg->protocol){
+            // Ping protocol
             case 0:
                return msg;
                break;
+            // Flood protocol
             case 6:
                return msg;
                break;
@@ -109,9 +111,10 @@ implementation{
 
    event void CommandHandler.flood(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "FLOOD EVENT \n");
+      // This is the initialization of the packet
+      // It is given a TTL 10 with the flooding protocol of 6
       makePack(&sendPackage, TOS_NODE_ID, destination, 10, 6, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
-      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
-      call Flooding.flood(sendPackage, AM_BROADCAST_ADDR);
+      call Flooding.flood(sendPackage);
    }
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
