@@ -4,6 +4,6 @@
 
 interface NeighborDiscovery{
     command void findNeighbor();
-    command void listNeighborhood();
+    command void listHood();
     command void addNeighbor(uint8_t node, uint8_t neighbor);
 }

@@ -53,6 +53,10 @@ implementation{
                 signal CommandHandler.ping(buff[0], &buff[1]);
                 break;
 
+            // case CMD_DISCOVERY:
+            //     dbg(COMMAND_CHANNEL, "Command Type: Discovery\n");
+            //     signal CommandHandler.discovery();
+
             case CMD_NEIGHBOR_DUMP:
                 dbg(COMMAND_CHANNEL, "Command Type: Neighbor Dump\n");
                 signal CommandHandler.printNeighbors();

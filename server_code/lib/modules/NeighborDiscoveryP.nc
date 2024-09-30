@@ -51,7 +51,14 @@ implementation{
         // nodeTable[nodeTableIndex].neighbors[neighborIndex] = neighbor;
     }
 
-    command void NeighborDiscovery.listNeighborhood(){
+    void refreshTable(){
+        uint8_t i = 0;
+        for(i; i < MAX_NODES; i++){
+
+        }
+    }
+
+    command void NeighborDiscovery.listHood(){
         uint8_t i = 0;
         uint8_t j = 0;
         for(i; i < MAX_NODES; i++){
@@ -77,7 +84,7 @@ implementation{
     event void discoveryTimer.fired(){
         pack pkt;
         if(active){
-            makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PING, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+            makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_NEIGHBOR, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
             if(call Sender.send(pkt, AM_BROADCAST_ADDR) == SUCCESS){
                 dbg(NEIGHBOR_CHANNEL, "Neighbor Discovery message sent\n");
             }

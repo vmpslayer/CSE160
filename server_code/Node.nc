@@ -36,8 +36,8 @@ implementation{
 
    event void Boot.booted(){
       call AMControl.start();
-
       dbg(GENERAL_CHANNEL, "Booted\n");
+      call NeighborDiscovery.findNeighbor();
       //call lineApp.start;
    }
 
@@ -60,6 +60,12 @@ implementation{
          // Checking what kind of packet received
          switch(myMsg->protocol){
             case 0:
+               return msg;
+               break;
+            case 6:
+               return msg;
+               break;
+            case 7:
                if(myMsg->dest == AM_BROADCAST_ADDR){
                   myMsg->dest = myMsg->src;
                   myMsg->src = TOS_NODE_ID;
@@ -70,9 +76,6 @@ implementation{
                   dbg(NEIGHBOR_CHANNEL, "Node %d has new Neighbor: Node %d\n", myMsg->src, myMsg->dest);
                   call NeighborDiscovery.addNeighbor(myMsg->src, myMsg->dest);
                }
-               return msg;
-               break;
-            case 7:
                return msg;
                break;
          }
