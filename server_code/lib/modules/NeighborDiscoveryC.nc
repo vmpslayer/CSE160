@@ -17,7 +17,5 @@ implementation // Specifies wiring
 
     // Ping & Reply
     components new SimpleSendC(AM_PACK) as Sender;
-    components new AMReceiverC(AM_PACK) as Receiver;
     NeighborDiscoveryP.Sender-> Sender;
-    NeighborDiscoveryP.Receiver -> Receiver;
 }

@@ -1,16 +1,8 @@
-#include "../../includes/command.h"
-#include "../../includes/packet.h"
-#include "../../includes/CommandMsg.h"
-#include "../../includes/sendInfo.h"
-#include "../../includes/channels.h"
-#include "../../includes/am_types.h"
-
 module NeighborDiscoveryP{
     provides interface NeighborDiscovery;
 
     uses interface Timer<TMilli> as discoveryTimer;
     uses interface SimpleSend as Sender;
-    uses interface Receive as Receiver;
     uses interface Random;
 }
 implementation{
@@ -45,15 +37,16 @@ implementation{
         memcpy(Package->payload, payload, length);
     }
 
-    void addNeighbor(uint8_t node, uint8_t neighbor){
+    command void NeighborDiscovery.addNeighbor(uint8_t node, uint8_t neighbor){
         uint8_t i = 0;
+        nodeTable[node].address = node;
         for(i; i < MAX_NEIGHBORS; i++){
             if(nodeTable[node].neighbors[i] == 0){
                 nodeTable[node].neighbors[i] = neighbor;
                 dbg(NEIGHBOR_CHANNEL, "Node %d has a new neighbor, %d\n", node, neighbor);
+                break;
             }
         }
-
         // nodeTable[nodeTableIndex].address = node;
         // nodeTable[nodeTableIndex].neighbors[neighborIndex] = neighbor;
     }
@@ -84,7 +77,7 @@ implementation{
     event void discoveryTimer.fired(){
         pack pkt;
         if(active){
-            makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, 0, PROTOCOL_PING, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+            makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 0, PROTOCOL_PING, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
             if(call Sender.send(pkt, AM_BROADCAST_ADDR) == SUCCESS){
                 dbg(NEIGHBOR_CHANNEL, "Neighbor Discovery message sent\n");
             }
@@ -97,22 +90,22 @@ implementation{
     }
 
     // Upon reception of a neighbor discovery packet, receiving node must reply back
-    event message_t* Receiver.receive(message_t* msg, void* payload, uint8_t len){
-        dbg(NEIGHBOR_CHANNEL, "Packet Received\n");
-        if(len==sizeof(pack)){
-            pack* myMsg=(pack*) payload;
-            dbg(NEIGHBOR_CHANNEL, "Package Payload: %s\n", myMsg->payload);
-            if(myMsg->dest == AM_BROADCAST_ADDR){
-                myMsg->dest = myMsg->src;
-                myMsg->src = TOS_NODE_ID;
-                myMsg->protocol = PROTOCOL_PINGREPLY;
-                call Sender.send(*myMsg, myMsg->dest);
-            }
-            else if(myMsg->dest == TOS_NODE_ID){
-                addNeighbor(myMsg->src, myMsg->dest);
-            }
-        }
-        dbg(NEIGHBOR_CHANNEL, "Unknown Packet Type %d\n", len);
-        return msg;
-    }
+    // event message_t* Receiver.receive(message_t* msg, void* payload, uint8_t len){
+    //     dbg(NEIGHBOR_CHANNEL, "Packet Received\n");
+    //     if(len==sizeof(pack)){
+    //         pack* myMsg=(pack*) payload;
+    //         dbg(NEIGHBOR_CHANNEL, "Package Payload: %s\n", myMsg->payload);
+    //         if(myMsg->dest == AM_BROADCAST_ADDR){
+    //             myMsg->dest = myMsg->src;
+    //             myMsg->src = TOS_NODE_ID;
+    //             myMsg->protocol = PROTOCOL_PINGREPLY;
+    //             call Sender.send(*myMsg, myMsg->dest);
+    //         }
+    //         else if(myMsg->dest == TOS_NODE_ID){
+    //             addNeighbor(myMsg->src, myMsg->dest);
+    //         }
+    //     }
+    //     dbg(NEIGHBOR_CHANNEL, "Unknown Packet Type %d\n", len);
+    //     return msg;
+    // }
 }

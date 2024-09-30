@@ -19,7 +19,7 @@ typedef nx_struct Neighbor{
 
 void logNeighbor(Neighbor *neighbor){
 	dbg(GENERAL_CHANNEL, "Node Address: %hhu Packets Received: %hhu Packets Sent: %hhu\n",
-	neighbor->address,  neighbor->pktReceived, neighbor->pktSent);
+	neighbor->address, neighbor->pktReceived, neighbor->pktSent);
 };
 
 #endif

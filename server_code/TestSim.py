@@ -120,8 +120,6 @@ class TestSim:
 
     def ping(self, source, dest, msg):
         self.sendCMD(self.CMD_PING, source, "{0}{1}".format(chr(dest),msg));
-        
-    # def calculate(self,)
     
     def neighborDMP(self, destination):
         self.sendCMD(self.CMD_NEIGHBOR_DUMP, destination, "neighbor command");
@@ -155,15 +153,14 @@ def main():
     s.flood(1, 3, "Flood packet");
     s.runTime(20);
 
-        
     # s.runTime(50);
     # s.flood(2, 18, "Sending Flood Message: Hi!")
     # s.runTime(30);
     
-    s.runTime(30);
-    s.neighborDMP(1);
-    s.runTime(20);
-    s.neighborDMP(2);
+    # s.runTime(30);
+    # s.neighborDMP(1);
+    # s.runTime(20);
+    # s.neighborDMP(2);
 
 if __name__ == '__main__':
     main()

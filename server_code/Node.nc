@@ -57,13 +57,22 @@ implementation{
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
          dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
-
          // Checking what kind of packet received
          switch(myMsg->protocol){
             case 0:
+               if(myMsg->dest == AM_BROADCAST_ADDR){
+                  myMsg->dest = myMsg->src;
+                  myMsg->src = TOS_NODE_ID;
+                  myMsg->protocol = PROTOCOL_PINGREPLY;
+                  call Sender.send(*myMsg, myMsg->dest);
+               }
+               else if(myMsg->dest == TOS_NODE_ID){
+                  dbg(NEIGHBOR_CHANNEL, "Node %d has new Neighbor: Node %d\n", myMsg->src, myMsg->dest);
+                  call NeighborDiscovery.addNeighbor(myMsg->src, myMsg->dest);
+               }
                return msg;
                break;
-            case 6:
+            case 7:
                return msg;
                break;
          }
