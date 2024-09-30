@@ -1,5 +1,4 @@
-
-#include "../../includes/Neighbor.h"
+#include "../../includes/node.h"
 #include "../../includes/packet.h"
 
 interface NeighborDiscovery{
