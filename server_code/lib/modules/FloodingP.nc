@@ -40,34 +40,20 @@ implementation{
     If not, it will check if it has received the packet before. If it has not,
     it will rebroadcast too all available nodes.
     */
-    bool flooding = FALSE;
-    uint8_t init = 0;
+    bool flooding = TRUE;
 
     uint16_t received[20];
+    uint16_t returned[20];
     //uint16_t receivedIndex = 0;
 
     pack sendPackage;
 
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
-    bool hasReceived(uint16_t src);    
+    // bool hasReceived(uint16_t src);    
 
-    command void Flooding.resetTable(){
-        uint8_t entry;
-        for(entry = 0; entry < 20; entry++){
-            received[entry] = 0;
-            // dbg(FLOODING_CHANNEL, "%i\n", received[entry]);
-        }
-        dbg(FLOODING_CHANNEL, "Reseting table...\n");
-        // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
-    }
+    command error_t Flooding.flood(pack msg){
 
-    command error_t Flooding.flood(pack msg){       
-        if(init == 0){
-            init++;
-            flooding = TRUE;
-        }
-
-        // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+        // dbg(FLOODING_CHANNEL, "Message sequence = %i\n", msg.seq);
 
         // If the packet still has life and the source node is not in the received list
         if(msg.TTL > 0 && received[TOS_NODE_ID] == 0 && flooding == TRUE){
@@ -84,12 +70,30 @@ implementation{
             return SUCCESS;
         }
 
+        // Same thing as above, just the other way
+        if(msg.TTL > 0 && msg.seq == 1 && returned[TOS_NODE_ID] == 0 && flooding == TRUE){
+            // Add the source node to the list
+            returned[TOS_NODE_ID] = 1;
+            dbg(FLOODING_CHANNEL, "Node %i is returning the flood.\n", TOS_NODE_ID);
+
+            // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+
+            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
+
+            // dbg(FLOODING_CHANNEL, "TTL: %i\n", sendPackage.TTL);
+
+            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+            // If the packet has reached its destination 
+            return SUCCESS;
+        }
+
+        dbg(FLOODING_CHANNEL, "Node %i has already received the packet\n", TOS_NODE_ID);
+
         return FAIL;
     }
 
     command void Flooding.reset(){
         flooding = FALSE;
-        init = 0;
     }
 
     event void floodTimer.fired(){

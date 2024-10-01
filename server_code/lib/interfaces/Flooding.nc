@@ -2,7 +2,6 @@
 
 interface Flooding{
     command error_t flood(pack msg);
-    command void resetTable();
     command void reset();
     command void receiveCheck(); // Debug tool
 }
