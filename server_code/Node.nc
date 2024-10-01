@@ -68,7 +68,7 @@ implementation{
             case 6:
                // dbg(FLOODING_CHANNEL, "Flood Packet Received.\n");
                dbg(FLOODING_CHANNEL, "Node %i has received the flood packet\n", TOS_NODE_ID);
-               call Flooding.receiveCheck();
+               // call Flooding.receiveCheck();
                // First direction destination
                if(myMsg->dest == TOS_NODE_ID && myMsg->seq == 0){
                   dbg(FLOODING_CHANNEL, "The packet has reached its destination!\n");

@@ -58,7 +58,7 @@ implementation{
             // dbg(FLOODING_CHANNEL, "%i\n", received[entry]);
         }
         dbg(FLOODING_CHANNEL, "Reseting table...\n");
-        dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+        // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
     }
 
     command error_t Flooding.flood(pack msg){       
@@ -67,7 +67,7 @@ implementation{
             flooding = TRUE;
         }
 
-        dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+        // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
 
         // If the packet still has life and the source node is not in the received list
         if(msg.TTL > 0 && received[TOS_NODE_ID] == 0 && flooding == TRUE){
@@ -75,7 +75,7 @@ implementation{
             received[TOS_NODE_ID] = 1;
             dbg(FLOODING_CHANNEL, "Node %i has initiated flooding.\n", TOS_NODE_ID);
 
-            dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+            // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
 
             makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
             // dbg(FLOODING_CHANNEL, "payload: %s\n", sendPackage.payload);
