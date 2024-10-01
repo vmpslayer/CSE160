@@ -54,7 +54,7 @@ implementation{
    event void AMControl.stopDone(error_t err){}
 
    event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
-      dbg(GENERAL_CHANNEL, "Packet Received\n");
+      // dbg(GENERAL_CHANNEL, "Packet Received\n");
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
          // dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
@@ -63,30 +63,35 @@ implementation{
             case 0:
                return msg;
                break;
-            case 6:
+            case PROTOCOL_FLOODING:
                return msg;
                break;
-            case 7:
+            case PROTOCOL_NEIGHBOR:
                // Upon reception of a neighbor discovery packet, receiving node must reply back
                if(myMsg->dest == AM_BROADCAST_ADDR){
-                  myMsg->dest = myMsg->src;
-                  myMsg->src = TOS_NODE_ID;
-                  call Sender.send(*myMsg, myMsg->dest);
+                  makePack(&sendPackage, TOS_NODE_ID, myMsg->src, 1, PROTOCOL_NEIGHBOR, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+                  call NeighborDiscovery.addNeighbor(myMsg->src);
+                  call Sender.send(sendPackage, myMsg->src);
+                  // if(call Sender.send(sendPackage, myMsg->src) == SUCCESS){
+                  //    dbg(NEIGHBOR_CHANNEL, "Reply sent from Node  %d to Node %d\n", myMsg->src, myMsg->dest);
+                  // }
+                  // else{
+                  //    dbg(NEIGHBOR_CHANNEL, "FAILED to reply to Node", myMsg->dest);
+                  // }
                }
                else if(myMsg->dest == TOS_NODE_ID){
-                  call NeighborDiscovery.addNeighbor(myMsg->src, myMsg->dest);
+                  call NeighborDiscovery.addNeighbor(myMsg->src);
                }
                return msg;
                break;
-            
+
             case 8:
-               if(myMsg->dest != TOS_NODE_ID){
-                  call NeighborDiscovery.removeNeighbor(myMsg->src, myMsg->dest);
-               }
+               call NeighborDiscovery.removeNeighbor(myMsg->src);
+               return msg;
+               break;
          }
       }
       dbg(GENERAL_CHANNEL, "Unknown Packet Type %d\n", len);
-      // dbg(GENERAL_CHANNEL, "Unknown Packet Type %d\n", len);
       return msg;
    }
 

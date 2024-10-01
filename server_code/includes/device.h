@@ -6,7 +6,7 @@
 #include "channels.h"
 
 enum{
-    MAX_NEIGHBORS = 10,
+    MAX_NEIGHBORS = 20,
 };
 
 typedef nx_struct Device{
