@@ -64,12 +64,6 @@ implementation{
                dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
                return msg;
                break;
-<<<<<<< HEAD
-            case PROTOCOL_FLOODING:
-               return msg;
-               break;
-            case PROTOCOL_NEIGHBOR:
-=======
             // Flood protocol
             case 6:
                // dbg(FLOODING_CHANNEL, "Flood Packet Received.\n");
@@ -87,7 +81,7 @@ implementation{
                      myMsg->TTL = 5;
                      */
                   
-                     makePack(&sendPackage, myMsg->dest, myMsg->src, 5, myMsg->protocol, 1, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
+                     makePack(&sendPackage, myMsg->dest, myMsg->src, 20, myMsg->protocol, 1, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
                      call Flooding.flood(sendPackage);
                      // call Flooding.receiveCheck();
                   }
@@ -106,7 +100,6 @@ implementation{
                break;
             case 7:
                dbg(NEIGHBOR_CHANNEL, "Discovery Packet Received.\n");
->>>>>>> 30f99f7ead86e798141870a545dc2accf4601cdf
                // Upon reception of a neighbor discovery packet, receiving node must reply back
                if(myMsg->dest == AM_BROADCAST_ADDR){
                   makePack(&sendPackage, TOS_NODE_ID, myMsg->src, 1, PROTOCOL_NEIGHBOR, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
@@ -161,7 +154,7 @@ implementation{
       dbg(FLOODING_CHANNEL, "FLOOD EVENT \n");
       // This is the initialization of the packet
       // It is given a TTL 5 with the flooding protocol of 6
-      makePack(&sendPackage, TOS_NODE_ID, destination, 5, 6, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      makePack(&sendPackage, TOS_NODE_ID, destination, 20, 6, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       call Flooding.flood(sendPackage);
    }
 

@@ -66,6 +66,7 @@ implementation{
             makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
             // dbg(FLOODING_CHANNEL, "payload: %s\n", sendPackage.payload);
             call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+            sendPackage = sendPackage; // Reassigns sendPackage so it will re-flood when timer runs out.
             // If the packet has reached its destination 
             return SUCCESS;
         }
@@ -83,6 +84,9 @@ implementation{
             // dbg(FLOODING_CHANNEL, "TTL: %i\n", sendPackage.TTL);
 
             call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+
+            sendPackage = sendPackage; // Reassigns sendPackage so it will re-flood when timer runs out.
+
             // If the packet has reached its destination 
             return SUCCESS;
         }
@@ -97,7 +101,9 @@ implementation{
     }
 
     event void floodTimer.fired(){
-        dbg(FLOODING_CHANNEL, "Hello my friend :3\n");
+        // Fired once (first) sender sends flood
+        // 1. If timer dies before acknowledgement is received, resend the flood
+        call Flooding.flood(sendPackage);
     }
 
     command void Flooding.receiveCheck(){
