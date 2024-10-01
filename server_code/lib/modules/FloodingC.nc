@@ -10,10 +10,10 @@ implementation{
     Flooding = FloodingP.Flooding;
 
     // Timers
-    // components new TimerMilliC() as floodTimer;
-    // FloodingP.floodTimer -> floodTimer;
+    components new TimerMilliC() as floodTimer;
+    FloodingP.floodTimer -> floodTimer;
 
-    // // Ping & Reply
-    // components new SimpleSendC(AM_FLOODING) as Sender;
-    // FloodingP.Sender -> Sender;
+    // Ping & Reply
+    components new SimpleSendC(AM_PACK) as Sender;
+    FloodingP.Sender -> Sender;
 }

@@ -6,7 +6,7 @@
 module FloodingP{
     provides interface Flooding;
 
-    // uses interface Timer<TMilli> as floodTimer;
+    uses interface Timer<TMilli> as floodTimer;
     uses interface SimpleSend as Sender;
 }
 implementation{
@@ -41,26 +41,83 @@ implementation{
     it will rebroadcast too all available nodes.
     */
     bool flooding = FALSE;
+    uint8_t init = 0;
+
+    uint16_t received[20];
+    //uint16_t receivedIndex = 0;
+
+    pack sendPackage;
+
+    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
+    bool hasReceived(uint16_t src);    
+
+    command void Flooding.resetTable(){
+        uint8_t entry;
+        for(entry = 0; entry < 20; entry++){
+            received[entry] = 0;
+            // dbg(FLOODING_CHANNEL, "%i\n", received[entry]);
+        }
+        dbg(FLOODING_CHANNEL, "Reseting table...\n");
+        dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+    }
+
+    command error_t Flooding.flood(pack msg){       
+        if(init == 0){
+            init++;
+            flooding = TRUE;
+        }
+
+        dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+
+        // If the packet still has life and the source node is not in the received list
+        if(msg.TTL > 0 && received[TOS_NODE_ID] == 0 && flooding == TRUE){
+            // Add the source node to the list
+            received[TOS_NODE_ID] = 1;
+            dbg(FLOODING_CHANNEL, "Node %i has initiated flooding.\n", TOS_NODE_ID);
+
+            dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+
+            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
+            // dbg(FLOODING_CHANNEL, "payload: %s\n", sendPackage.payload);
+            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+            // If the packet has reached its destination 
+            return SUCCESS;
+        }
+
+        return FAIL;
+    }
+
+    command void Flooding.reset(){
+        flooding = FALSE;
+        init = 0;
+    }
+
+    event void floodTimer.fired(){
+        dbg(FLOODING_CHANNEL, "Hello my friend :3\n");
+    }
+
+    command void Flooding.receiveCheck(){
+        dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+    }
+
+    /*
+    bool hasReceived(uint16_t src){
+        for(i = 0; i < receivedIndex; i++){
+            if(received[i]==src){
+                return TRUE;
+            }
+        }
+        dbg(FLOODING_CHANNEL, "Fail\n");
+        return FALSE;
+    }
+    */
 
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
-        Package->src = src;
-        Package->dest = dest;
-        Package->TTL = TTL;
-        Package->seq = seq;
-        Package->protocol = protocol;
-        memcpy(Package->payload, payload, length);
-    }
-
-    command error_t Flooding.flood(pack msg, uint16_t dest){
-        dbg(FLOODING_CHANNEL, "Flooding?\n");
-        // If the packet has reached its destination 
-        return SUCCESS;
-    }
-
-    // event floodTimer.fired(){
-    //     pack pkt;
-    //     if(flooding){
-
-    //     }
-    // }
+      Package->src = src;
+      Package->dest = dest;
+      Package->TTL = TTL;
+      Package->seq = seq;
+      Package->protocol = protocol;
+      memcpy(Package->payload, payload, length);
+   }
 }
