@@ -6,7 +6,7 @@
 module FloodingP{
     provides interface Flooding;
 
-    // uses interface Timer<TMilli> as floodTimer;
+    uses interface Timer<TMilli> as floodTimer;
     uses interface SimpleSend as Sender;
 }
 implementation{
@@ -40,27 +40,88 @@ implementation{
     If not, it will check if it has received the packet before. If it has not,
     it will rebroadcast too all available nodes.
     */
-    bool flooding = FALSE;
+    bool flooding = TRUE;
+
+    uint16_t received[20];
+    uint16_t returned[20];
+    //uint16_t receivedIndex = 0;
+
+    pack sendPackage;
+
+    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
+    // bool hasReceived(uint16_t src);    
+
+    command error_t Flooding.flood(pack msg){
+
+        // dbg(FLOODING_CHANNEL, "Message sequence = %i\n", msg.seq);
+
+        // If the packet still has life and the source node is not in the received list
+        if(msg.TTL > 0 && received[TOS_NODE_ID] == 0 && flooding == TRUE){
+            // Add the source node to the list
+            received[TOS_NODE_ID] = 1;
+            dbg(FLOODING_CHANNEL, "Node %i has initiated flooding.\n", TOS_NODE_ID);
+
+            // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+
+            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
+            // dbg(FLOODING_CHANNEL, "payload: %s\n", sendPackage.payload);
+            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+            // If the packet has reached its destination 
+            return SUCCESS;
+        }
+
+        // Same thing as above, just the other way
+        if(msg.TTL > 0 && msg.seq == 1 && returned[TOS_NODE_ID] == 0 && flooding == TRUE){
+            // Add the source node to the list
+            returned[TOS_NODE_ID] = 1;
+            dbg(FLOODING_CHANNEL, "Node %i is returning the flood.\n", TOS_NODE_ID);
+
+            // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+
+            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
+
+            // dbg(FLOODING_CHANNEL, "TTL: %i\n", sendPackage.TTL);
+
+            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+            // If the packet has reached its destination 
+            return SUCCESS;
+        }
+
+        dbg(FLOODING_CHANNEL, "Node %i has already received the packet\n", TOS_NODE_ID);
+
+        return FAIL;
+    }
+
+    command void Flooding.reset(){
+        flooding = FALSE;
+    }
+
+    event void floodTimer.fired(){
+        dbg(FLOODING_CHANNEL, "Hello my friend :3\n");
+    }
+
+    command void Flooding.receiveCheck(){
+        dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+    }
+
+    /*
+    bool hasReceived(uint16_t src){
+        for(i = 0; i < receivedIndex; i++){
+            if(received[i]==src){
+                return TRUE;
+            }
+        }
+        dbg(FLOODING_CHANNEL, "Fail\n");
+        return FALSE;
+    }
+    */
 
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
-        Package->src = src;
-        Package->dest = dest;
-        Package->TTL = TTL;
-        Package->seq = seq;
-        Package->protocol = protocol;
-        memcpy(Package->payload, payload, length);
-    }
-
-    command error_t Flooding.flood(pack msg, uint16_t dest){
-        dbg(FLOODING_CHANNEL, "Flooding?\n");
-        // If the packet has reached its destination 
-        return SUCCESS;
-    }
-
-    // event floodTimer.fired(){
-    //     pack pkt;
-    //     if(flooding){
-
-    //     }
-    // }
+      Package->src = src;
+      Package->dest = dest;
+      Package->TTL = TTL;
+      Package->seq = seq;
+      Package->protocol = protocol;
+      memcpy(Package->payload, payload, length);
+   }
 }

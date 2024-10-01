@@ -57,16 +57,56 @@ implementation{
       // dbg(GENERAL_CHANNEL, "Packet Received\n");
       if(len==sizeof(pack)){
          pack* myMsg=(pack*) payload;
-         // dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
          // Checking what kind of packet received
          switch(myMsg->protocol){
+            // Ping protocol
             case 0:
+               dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
                return msg;
                break;
+<<<<<<< HEAD
             case PROTOCOL_FLOODING:
                return msg;
                break;
             case PROTOCOL_NEIGHBOR:
+=======
+            // Flood protocol
+            case 6:
+               // dbg(FLOODING_CHANNEL, "Flood Packet Received.\n");
+               dbg(FLOODING_CHANNEL, "Node %i has received the flood packet.\n", TOS_NODE_ID);
+               // call Flooding.receiveCheck();
+               // First direction destination
+               if(myMsg->dest == TOS_NODE_ID){
+                  dbg(FLOODING_CHANNEL, "The packet has reached its destination!\n");
+                  if(myMsg->seq == 0){
+                     dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
+                     /*
+                     myMsg->dest = myMsg->src;
+                     myMsg->src = TOS_NODE_ID;
+                     myMsg->seq = 1;
+                     myMsg->TTL = 5;
+                     */
+                  
+                     makePack(&sendPackage, myMsg->dest, myMsg->src, 5, myMsg->protocol, 1, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
+                     call Flooding.flood(sendPackage);
+                     // call Flooding.receiveCheck();
+                  }
+                  else if(myMsg->seq == 1){
+                     dbg(FLOODING_CHANNEL, "The flooding return packet has been received.\nStopping flooding...\n");
+                     call Flooding.reset(); // Turns flooding to FALSE to stop the rest of the nodes from sending
+                  }
+               }
+               // If the packet arrives and its not the desired destination, flood again.
+               else{
+                  
+                  call Flooding.flood(*myMsg);
+               }
+
+               return msg;
+               break;
+            case 7:
+               dbg(NEIGHBOR_CHANNEL, "Discovery Packet Received.\n");
+>>>>>>> 30f99f7ead86e798141870a545dc2accf4601cdf
                // Upon reception of a neighbor discovery packet, receiving node must reply back
                if(myMsg->dest == AM_BROADCAST_ADDR){
                   makePack(&sendPackage, TOS_NODE_ID, myMsg->src, 1, PROTOCOL_NEIGHBOR, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
@@ -118,10 +158,11 @@ implementation{
    event void CommandHandler.setAppClient(){}
 
    event void CommandHandler.flood(uint16_t destination, uint8_t *payload){
-      dbg(GENERAL_CHANNEL, "FLOOD EVENT \n");
-      makePack(&sendPackage, TOS_NODE_ID, destination, 10, 6, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
-      call Sender.send(sendPackage, AM_BROADCAST_ADDR);
-      call Flooding.flood(sendPackage, AM_BROADCAST_ADDR);
+      dbg(FLOODING_CHANNEL, "FLOOD EVENT \n");
+      // This is the initialization of the packet
+      // It is given a TTL 5 with the flooding protocol of 6
+      makePack(&sendPackage, TOS_NODE_ID, destination, 5, 6, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      call Flooding.flood(sendPackage);
    }
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
