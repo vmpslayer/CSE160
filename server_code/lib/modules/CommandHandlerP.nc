@@ -52,41 +52,30 @@ implementation{
                 dbg(COMMAND_CHANNEL, "Command Type: Ping\n");
                 signal CommandHandler.ping(buff[0], &buff[1]);
                 break;
-
-            // case CMD_DISCOVERY:
-            //     dbg(COMMAND_CHANNEL, "Command Type: Discovery\n");
-            //     signal CommandHandler.discovery();
-
             case CMD_NEIGHBOR_DUMP:
                 dbg(COMMAND_CHANNEL, "Command Type: Neighbor Dump\n");
                 signal CommandHandler.printNeighbors();
                 break;
-
             case CMD_LINKSTATE_DUMP:
                 dbg(COMMAND_CHANNEL, "Command Type: Link State Dump\n");
                 signal CommandHandler.printLinkState();
                 break;
-
             case CMD_ROUTETABLE_DUMP:
                 dbg(COMMAND_CHANNEL, "Command Type: Route Table Dump\n");
                 signal CommandHandler.printRouteTable();
                 break;
-
             case CMD_TEST_CLIENT:
                 dbg(COMMAND_CHANNEL, "Command Type: Client\n");
                 signal CommandHandler.setTestClient();
                 break;
-
             case CMD_TEST_SERVER:
                 dbg(COMMAND_CHANNEL, "Command Type: Client\n");
                 signal CommandHandler.setTestServer();
                 break;
-
             case CMD_FLOOD:
                 dbg(COMMAND_CHANNEL, "Command Type: Flood\n");
                 signal CommandHandler.flood(buff[0], &buff[1]);
                 break;
-
             default:
                 dbg(COMMAND_CHANNEL, "CMD_ERROR: \"%d\" does not match any known commands.\n", msg->id);
                 break;
