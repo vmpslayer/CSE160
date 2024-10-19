@@ -134,6 +134,9 @@ class TestSim:
     def flood(self, source, dest, msg):
         self.sendCMD(self.CMD_FLOOD, source, "{0}{1}".format(chr(dest),msg));
 
+    def cmdRouteDMP(destination):
+        
+
 def main():
     s = TestSim();
     s.runTime(10);

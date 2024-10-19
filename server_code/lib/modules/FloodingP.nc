@@ -42,6 +42,7 @@ implementation{
     */
     bool flooding = TRUE;
 
+    uint16_t sequence = 0;
     uint16_t received[20];
     uint16_t returned[20];
     //uint16_t receivedIndex = 0;
