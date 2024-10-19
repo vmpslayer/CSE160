@@ -96,23 +96,22 @@ implementation{
                return msg;
                break;
             case 7:
-               dbg(NEIGHBOR_CHANNEL, "SUCCESS: Neighbor Discovery Packet %d Received from %d.\n", myMsg->seq, myMsg->src);
+               dbg(NEIGHBOR_CHANNEL, "SUCCESS: Discovery Packet %d Received from %d. ", myMsg->seq, myMsg->src);
                // Upon reception of a neighbor discovery packet, receiving node must reply back
                if(myMsg->dest == AM_BROADCAST_ADDR){
                   makePack(&sendPackage, TOS_NODE_ID, myMsg->src, 1, PROTOCOL_NEIGHBOR, myMsg->seq, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
-                  call NeighborDiscovery.addNeighbor(myMsg->src);
-                  // call Sender.send(sendPackage, myMsg->src);
                   if(call Sender.send(sendPackage, myMsg->src) == SUCCESS){
-                     dbg(NEIGHBOR_CHANNEL, "SUCCESS: Reply sent from Node  %d to Node %d\n", myMsg->src, myMsg->dest);
+                     dbg_clear(NEIGHBOR_CHANNEL, "Reply sent from Node %d to Node %d", myMsg->src, TOS_NODE_ID);
                   }
                   else{
-                     dbg(NEIGHBOR_CHANNEL, "ERROR: Cannot send reply to Node", myMsg->dest);
+                     dbg_clear(NEIGHBOR_CHANNEL, "ERROR: Cannot send reply to Node %d", myMsg->dest);
                   }
-               }
-               else if(myMsg->dest == TOS_NODE_ID){
-                  // dbg(NEIGHBOR_CHANNEL, "AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH: tos_node: %d \n", TOS_NODE_ID);
                   call NeighborDiscovery.addNeighbor(myMsg->src);
                }
+               else if(myMsg->dest == TOS_NODE_ID){
+                  call NeighborDiscovery.addNeighbor(myMsg->src);
+               }
+               dbg_clear(NEIGHBOR_CHANNEL, "\n");
                return msg;
                break;
 

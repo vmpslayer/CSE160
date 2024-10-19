@@ -35,21 +35,33 @@ implementation{
         memcpy(Package->payload, payload, length);
     }
 
+    void calculateQol(uint8_t srcNode){
+        float weight = 0.5;
+        float link = 0;
+        if(nodeTable[srcNode].pktReceived == 0){ // Avoid's division by 0
+            return;
+        }
+        link = (float)nodeTable[srcNode].pktReceived / (float)nodeTable[srcNode].pktSent;
+        nodeTable[srcNode].qol = (weight * link) + (weight * nodeTable[srcNode].qol);
+        // qol = (weight * link + weight * qol);
+    }
+
     command void NeighborDiscovery.addNeighbor(uint8_t srcNode){
         nodeTable[srcNode].pktReceived++;
-
         if(nodeTable[srcNode].address == 1){
             // dbg(NEIGHBOR_CHANNEL, "EXISTS: Node %d already has neighbor node %d\n", TOS_NODE_ID, srcNode);
             return;
         }
         else if(nodeTable[srcNode].address == 0){
-            dbg(NEIGHBOR_CHANNEL, "NEW: Node %d discovered a new neighbor node %d\n", TOS_NODE_ID, srcNode);
+            dbg_clear(NEIGHBOR_CHANNEL, "\n");
+            dbg(NEIGHBOR_CHANNEL, "NEW: Node %d discovered a new neighbor node %d", TOS_NODE_ID, srcNode);
+            nodeTable[srcNode].address = 1;
             nodeTable[srcNode].pktReceived = 0;
             nodeTable[srcNode].pktSent = 0;
-            nodeTable[srcNode].address = 1;
+            nodeTable[srcNode].qol = 0.0;
             return;
         }
-        nodeTable[srcNode].qol = nodeTable[srcNode].pktReceived / nodeTable[srcNode].pktSent;
+        calculateQol(srcNode);
     }
 
     void refreshTable(){
@@ -57,6 +69,9 @@ implementation{
         for(i = 0; i < MAX_NEIGHBORS; i++){
             if(nodeTable[i].address != 0){
                 nodeTable[i].address = 0;
+                nodeTable[i].pktSent = 0;
+                nodeTable[i].pktReceived = 0;
+                nodeTable[i].qol = 0.0;
             }
             else{
                 break;
@@ -72,6 +87,7 @@ implementation{
     void listHood(){
         uint8_t i;
         bool hasNeighbors = FALSE;
+        bool printQuality = FALSE;
 
         for(i = 0; i < MAX_NEIGHBORS; i++){
             if(nodeTable[i].address != 0){
@@ -87,11 +103,22 @@ implementation{
                 }
                 else{
                     dbg_clear(NEIGHBOR_CHANNEL, "%d ", i);
-                    dbg(NEIGHBOR_CHANNEL, "%d's Link Quality: %d\n", i, nodeTable[i].qol);
                 }
                 // dbg_clear(NEIGHBOR_CHANNEL, "%d ", nodeTable[i]);
             }
             dbg_clear(NEIGHBOR_CHANNEL, "\n");
+            printQuality = TRUE;
+        }
+        if(printQuality){
+            for(i = 0; i < MAX_NEIGHBORS; i++){
+                if(nodeTable[i].address == 0){
+
+                }
+                else{
+                    dbg_clear(NEIGHBOR_CHANNEL, "Main Node %d   Neighbor Node %d   %d (sent) %d (received) %f (qol)\n", TOS_NODE_ID, i, nodeTable[i].pktSent, nodeTable[i].pktReceived, nodeTable[i].qol);
+                    // dbg_clear(NEIGHBOR_CHANNEL, "Node %d's Link Quality with Node %d: %d\n", TOS_NODE_ID, i, qol);
+                }  
+            }
         }
     }
 
@@ -108,12 +135,18 @@ implementation{
 
     event void discoveryTimer.fired(){
         pack pkt;
+        uint8_t i;
         if(active){
             makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 1, PROTOCOL_NEIGHBOR, sqNumber, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
             if(call Sender.send(pkt, AM_BROADCAST_ADDR) == SUCCESS){
                 // dbg(NEIGHBOR_CHANNEL, "SUCCESS: Neighbor Discovery packet (%d) sent\n", sqNumber);
                 sqNumber++;
-                nodeTable[TOS_NODE_ID].pktSent++;
+                for(i = 0; i < MAX_NEIGHBORS; i++){
+                    if(nodeTable[i].address != 0){
+                        nodeTable[i].pktSent++;
+                    }
+                }
+                // dbg(NEIGHBOR_CHANNEL, "PRINT: %d \n", nodeTable[TOS_NODE_ID].pktSent);
             }
             else{
                 dbg(NEIGHBOR_CHANNEL, "ERROR: Neighbor Discovery message UNSUCCESSFULLY sent\n");
