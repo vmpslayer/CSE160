@@ -64,7 +64,7 @@ implementation{
 
             // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
 
-            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
+            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, (uint8_t*)msg.payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
             // dbg(FLOODING_CHANNEL, "payload: %s\n", sendPackage.payload);
             call Sender.send(sendPackage, AM_BROADCAST_ADDR);
             sendPackage = sendPackage; // Reassigns sendPackage so it will re-flood when timer runs out.
@@ -76,11 +76,11 @@ implementation{
         if(msg.TTL > 0 && msg.seq == 1 && returned[TOS_NODE_ID] == 0 && flooding == TRUE){
             // Add the source node to the list
             returned[TOS_NODE_ID] = 1;
-            dbg(FLOODING_CHANNEL, "Node %i is returning the flood.\n", TOS_NODE_ID);
+            dbg(FLOODING_CHANNEL, "Node %i is the flood.\n", TOS_NODE_ID);
 
             // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
 
-            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, msg.payload, ""); // Why does this work?
+            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, (uint8_t*)msg.payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
 
             // dbg(FLOODING_CHANNEL, "TTL: %i\n", sendPackage.TTL);
 
