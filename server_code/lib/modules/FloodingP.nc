@@ -3,6 +3,8 @@
 #include "../../includes/packet.h"
 #include "../../includes/sendInfo.h"
 #include "../../includes/am_types.h"
+#include "../../includes/flood.h"
+
 module FloodingP{
     provides interface Flooding;
 
@@ -14,121 +16,117 @@ implementation{
     Flooding - Each node floods a packet to all its neighbor nodes. These
     packets continue to flood until they reach their final destination.
     Must work as pings and ping replies. Only use information accessible
-    from the packet and its headers 
-    
-    There are protocols PING = 0, and PINGREPLY = 1.
-
-    am_types has AM_FLOODING = 10
-
-    If flood is called, the node will send out a flood type (protocol) packet 
-    to all nodes around it using AM_BROADCAST_ADDR. Then receive will check if
-    the protocol is flood. If it is, then it will check if it has received the
-    payload before. If not it will check if its the intented destination.
-    If not, send it to all nodes around it.
-
-    This will be accomplished by creating a new function in TestSim.py that will
-    take in a source node, a destination node, and a payload message. These
-    parameters will then be fed into the send command fucntion with the flooding
-    command ID. Which the command handler will then need a flood command switch
-    case, which will make a call to a Command Handler flood event.
-    The Command Handler flood event needs to be declared in CommandHandler.nc and
-    defined in Node.nc. This flood event will have a debug message stating that
-    flooding has been selected as the chosen 'event'. From there, the actual
-    Flooding.flood command will be executed, which will utilize SimpleSend to
-    broadcast the packet to all available nodes. When a node receives the flooding
-    packet, it will check if it is the intended destination for the packet.
-    If not, it will check if it has received the packet before. If it has not,
-    it will rebroadcast too all available nodes.
+    from the packet and its headers
     */
-    bool flooding = TRUE;
-
     uint16_t sequence = 0;
-    uint16_t received[20];
-    uint16_t returned[20];
-    //uint16_t receivedIndex = 0;
+    floodCache cache[20];
+    int cacheIndex = 0;
+    bool received = FALSE;
 
     pack sendPackage;
 
-    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
-    // bool hasReceived(uint16_t src);    
+    void makePack(pack *Package, uint16_t floodSource, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length); 
+    bool alreadyCached(floodCache msg);
 
-    command error_t Flooding.flood(pack msg){
+    // Revised by Andre Limos on 10/19/2024
+    command error_t Flooding.initFlood(pack msg){
+        dbg(FLOODING_CHANNEL, "Node %i is opening the floodgates!\n", TOS_NODE_ID);
+        // Make packet with flooding header
+        makePack(&sendPackage, msg.src, msg.src, msg.dest, msg.TTL, msg.protocol, sequence++, *(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
+        // cache packet
+        cache[cacheIndex].seq = msg.seq;
+        cache[cacheIndex].floodSource = msg.src;
+        cacheIndex++;
+        if(cacheIndex == 20){
+            cacheIndex = 0;
+        }
+        // broadcast packet
+        call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+        // start timer
+        received = FALSE;
+        call floodTimer.startOneShot(5000);
 
-        // dbg(FLOODING_CHANNEL, "Message sequence = %i\n", msg.seq);
+        return SUCCESS;
+    }
 
-        // If the packet still has life and the source node is not in the received list
-        if(msg.TTL > 0 && received[TOS_NODE_ID] == 0 && flooding == TRUE){
-            // Add the source node to the list
-            received[TOS_NODE_ID] = 1;
-            dbg(FLOODING_CHANNEL, "Node %i has initiated flooding.\n", TOS_NODE_ID);
+    command error_t Flooding.receiveHandler(pack msg){
+        floodPack flood_pack;
+        floodCache flood_cache;
 
-            // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
+        memcpy(&flood_pack, &msg.payload, sizeof(floodPack));
 
-            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, (uint8_t*)msg.payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
-            // dbg(FLOODING_CHANNEL, "payload: %s\n", sendPackage.payload);
-            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
-            sendPackage = sendPackage; // Reassigns sendPackage so it will re-flood when timer runs out.
-            // If the packet has reached its destination 
-            return SUCCESS;
+        flood_cache.seq = msg.seq;
+        flood_cache.floodSource = flood_pack.floodSource;
+
+        if(msg.TTL == 1){ // If time to live expires
+            return FAIL; // Drop
         }
 
-        // Same thing as above, just the other way
-        if(msg.TTL > 0 && msg.seq == 1 && returned[TOS_NODE_ID] == 0 && flooding == TRUE){
-            // Add the source node to the list
-            returned[TOS_NODE_ID] = 1;
-            dbg(FLOODING_CHANNEL, "Node %i is the flood.\n", TOS_NODE_ID);
+        dbg(FLOODING_CHANNEL, "Node %i has recieved a flooding packet from Node %i\n", TOS_NODE_ID, msg.src);
 
-            // dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
-
-            makePack(&sendPackage, msg.src, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, (uint8_t*)msg.payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
-
-            // dbg(FLOODING_CHANNEL, "TTL: %i\n", sendPackage.TTL);
-
-            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
-
-            sendPackage = sendPackage; // Reassigns sendPackage so it will re-flood when timer runs out.
-
-            // If the packet has reached its destination 
-            return SUCCESS;
+        if(alreadyCached(flood_cache) == TRUE){ // Yes this is a duplicate packet
+            dbg(FLOODING_CHANNEL, "Node %i has already received this packet, dropping. . .\n", TOS_NODE_ID);
+            return FAIL; // Drop it
+        }
+        else{ // If not, cache packet
+            cache[cacheIndex].seq = msg.seq;
+            cache[cacheIndex].floodSource = flood_pack.floodSource;
+            cacheIndex++;
+            if(cacheIndex == 20){
+                cacheIndex = 0;
+            }
         }
 
-        dbg(FLOODING_CHANNEL, "Node %i has already received the packet\n", TOS_NODE_ID);
-
-        return FAIL;
+        if(TOS_NODE_ID == msg.dest){ // Send a reply
+            if(msg.protocol == PROTOCOL_FLOODINGREPLY){
+                dbg(FLOODING_CHANNEL, "Acknowledgement received!\n");
+                received = TRUE;
+                return SUCCESS;
+            }
+            makePack(&sendPackage, TOS_NODE_ID, TOS_NODE_ID, flood_pack.floodSource, 20, PROTOCOL_FLOODINGREPLY, msg.seq, *(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
+            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+        }
+        else{ // If not, broadcast again
+            makePack(&sendPackage, flood_pack.floodSource, TOS_NODE_ID, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, *(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
+            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+        }
     }
 
-    command void Flooding.reset(){
-        flooding = FALSE;
-    }
-
-    event void floodTimer.fired(){
-        // Fired once (first) sender sends flood
-        // 1. If timer dies before acknowledgement is received, resend the flood
-        call Flooding.flood(sendPackage);
-    }
-
-    command void Flooding.receiveCheck(){
-        dbg(FLOODING_CHANNEL, "received[%i] = %i\n", TOS_NODE_ID, received[TOS_NODE_ID]);
-    }
-
-    /*
-    bool hasReceived(uint16_t src){
-        for(i = 0; i < receivedIndex; i++){
-            if(received[i]==src){
+    bool alreadyCached(floodCache msg){
+        int i;
+        for(i = 0; i < 20; i++){
+            if(cache[i].seq == msg.seq && cache[i].floodSource == msg.floodSource){
                 return TRUE;
             }
         }
-        dbg(FLOODING_CHANNEL, "Fail\n");
         return FALSE;
     }
-    */
 
-    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
-      Package->src = src;
-      Package->dest = dest;
-      Package->TTL = TTL;
-      Package->seq = seq;
-      Package->protocol = protocol;
-      memcpy(Package->payload, payload, length);
+    event void floodTimer.fired(){
+        // dbg(FLOODING_CHANNEL, "Firing my lazah!\n");
+        if(received){
+            dbg(FLOODING_CHANNEL, "Flood complete\n");
+        }
+        else{
+            dbg(FLOODING_CHANNEL, "No acknowledgement, retrying flood. . .\n");
+            call Sender.send(sendPackage, AM_BROADCAST_ADDR);
+            call floodTimer.startOneShot(5000);
+        }
+
+    }
+
+    // New makePack that includes flooding header
+    void makePack(pack *Package, uint16_t floodSource, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
+        floodPack header;
+        header.floodSource = floodSource;
+        memcpy(&header.payload, &payload, FLOODING_MAX_PAYLOAD_SIZE);
+    
+        Package->src = src;
+        Package->dest = dest;
+        Package->TTL = TTL;
+        Package->seq = seq;
+        Package->protocol = protocol;
+        memcpy(Package->payload, &header, PACKET_MAX_PAYLOAD_SIZE);
+        // dbg(FLOODING_CHANNEL, "Flooding header successfully added!\n"); Debugging message found bug
    }
 }
