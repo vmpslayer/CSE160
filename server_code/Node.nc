@@ -38,8 +38,6 @@ implementation{
       call AMControl.start();
       dbg(GENERAL_CHANNEL, "Booted\n");
       call NeighborDiscovery.findNeighbor();
-      call NeighborDiscovery.checkNeighbor();
-      //call lineApp.start;
    }
 
    event void AMControl.startDone(error_t err){
@@ -81,7 +79,7 @@ implementation{
                      myMsg->TTL = 5;
                      */
                   
-                     makePack(&sendPackage, myMsg->dest, myMsg->src, 20, myMsg->protocol, 1, myMsg->payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
+                     makePack(&sendPackage, myMsg->dest, myMsg->src, 5, myMsg->protocol, 1, payload, PACKET_MAX_PAYLOAD_SIZE); // Why does this work?
                      call Flooding.flood(sendPackage);
                      // call Flooding.receiveCheck();
                   }
@@ -92,27 +90,27 @@ implementation{
                }
                // If the packet arrives and its not the desired destination, flood again.
                else{
-                  
                   call Flooding.flood(*myMsg);
                }
 
                return msg;
                break;
             case 7:
-               dbg(NEIGHBOR_CHANNEL, "Discovery Packet Received.\n");
+               dbg(NEIGHBOR_CHANNEL, "SUCCESS: Neighbor Discovery Packet %d Received from %d.\n", myMsg->seq, myMsg->src);
                // Upon reception of a neighbor discovery packet, receiving node must reply back
                if(myMsg->dest == AM_BROADCAST_ADDR){
-                  makePack(&sendPackage, TOS_NODE_ID, myMsg->src, 1, PROTOCOL_NEIGHBOR, 0, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+                  makePack(&sendPackage, TOS_NODE_ID, myMsg->src, 1, PROTOCOL_NEIGHBOR, myMsg->seq, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
                   call NeighborDiscovery.addNeighbor(myMsg->src);
-                  call Sender.send(sendPackage, myMsg->src);
-                  // if(call Sender.send(sendPackage, myMsg->src) == SUCCESS){
-                  //    dbg(NEIGHBOR_CHANNEL, "Reply sent from Node  %d to Node %d\n", myMsg->src, myMsg->dest);
-                  // }
-                  // else{
-                  //    dbg(NEIGHBOR_CHANNEL, "FAILED to reply to Node", myMsg->dest);
-                  // }
+                  // call Sender.send(sendPackage, myMsg->src);
+                  if(call Sender.send(sendPackage, myMsg->src) == SUCCESS){
+                     dbg(NEIGHBOR_CHANNEL, "SUCCESS: Reply sent from Node  %d to Node %d\n", myMsg->src, myMsg->dest);
+                  }
+                  else{
+                     dbg(NEIGHBOR_CHANNEL, "ERROR: Cannot send reply to Node", myMsg->dest);
+                  }
                }
                else if(myMsg->dest == TOS_NODE_ID){
+                  // dbg(NEIGHBOR_CHANNEL, "AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH: tos_node: %d \n", TOS_NODE_ID);
                   call NeighborDiscovery.addNeighbor(myMsg->src);
                }
                return msg;
