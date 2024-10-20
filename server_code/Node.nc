@@ -67,23 +67,7 @@ implementation{
                call Flooding.receiveHandler(*myMsg);
                break;
             case 7:
-               dbg(NEIGHBOR_CHANNEL, "SUCCESS: Discovery Packet %d Received from %d. ", myMsg->seq, myMsg->src);
-               // Upon reception of a neighbor discovery packet, receiving node must reply back
-               if(myMsg->dest == AM_BROADCAST_ADDR){
-                  makePack(&sendPackage, TOS_NODE_ID, myMsg->src, 1, PROTOCOL_NEIGHBOR, myMsg->seq, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
-                  if(call Sender.send(sendPackage, myMsg->src) == SUCCESS){
-                     dbg_clear(NEIGHBOR_CHANNEL, "Reply sent from Node %d to Node %d", myMsg->src, TOS_NODE_ID);
-                  }
-                  else{
-                     dbg_clear(NEIGHBOR_CHANNEL, "ERROR: Cannot send reply to Node %d", myMsg->dest);
-                  }
-                  call NeighborDiscovery.addNeighbor(myMsg->src);
-               }
-               else if(myMsg->dest == TOS_NODE_ID){
-                  call NeighborDiscovery.addNeighbor(myMsg->src);
-               }
-               dbg_clear(NEIGHBOR_CHANNEL, "\n");
-               return msg;
+               call NeighborDiscovery.receiveHandler(*myMsg);
                break;
             case 8:
                call NeighborDiscovery.removeNeighbor(myMsg->src);

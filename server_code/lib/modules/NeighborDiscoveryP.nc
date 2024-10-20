@@ -23,8 +23,10 @@ implementation{
     bool knownNeighbor = FALSE; // Neighbor Check // 0 = unknown, 1 = known
     bool deadNeighbor = FALSE;
     uint8_t sqNumber = 0;
+    float link = 0;
     Neighbor nodeTable[MAX_NEIGHBORS]; // Houses just THIS node's neighbors
     uint8_t nodeTableIndex = -1;
+    pack pkt;
 
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
         Package->src = src;
@@ -35,19 +37,38 @@ implementation{
         memcpy(Package->payload, payload, length);
     }
 
+    command error_t NeighborDiscovery.receiveHandler(pack msg){
+        dbg(NEIGHBOR_CHANNEL, "SUCCESS: Discovery Packet %d Received from %d. ", msg.seq, msg.src);
+        // Upon reception of a neighbor discovery packet, receiving node must reply back
+        if(msg.dest == AM_BROADCAST_ADDR){
+            makePack(&pkt, TOS_NODE_ID, msg.src, 1, PROTOCOL_NEIGHBOR, msg.seq, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+            if(call Sender.send(pkt, msg.src) == SUCCESS){
+                dbg_clear(NEIGHBOR_CHANNEL, "Reply sent from Node %d to Node %d", msg.src, TOS_NODE_ID);
+                nodeTable[msg.src].pktReceived++;
+            }
+            else{
+                dbg_clear(NEIGHBOR_CHANNEL, "ERROR: Cannot send reply to Node %d", msg.dest);
+            }
+            call NeighborDiscovery.addNeighbor(msg.src);
+        }
+        else if(msg.dest == TOS_NODE_ID){
+            call NeighborDiscovery.addNeighbor(msg.src);
+        }
+        dbg_clear(NEIGHBOR_CHANNEL, "\n");
+        return SUCCESS;
+    }
+
     void calculateQol(uint8_t srcNode){
-        float weight = 0.5;
-        float link = 0;
+        float weight = 0.50;
         if(nodeTable[srcNode].pktReceived == 0){ // Avoid's division by 0
             return;
         }
-        link = (float)nodeTable[srcNode].pktReceived / (float)nodeTable[srcNode].pktSent;
-        nodeTable[srcNode].qol = (weight * link) + (weight * nodeTable[srcNode].qol);
-        // qol = (weight * link + weight * qol);
+        link = (float)(nodeTable[srcNode].pktReceived) / (float)(nodeTable[srcNode].pktSent);
+        nodeTable[srcNode].qol = weight * link + (weight * nodeTable[srcNode].qol);
     }
 
     command void NeighborDiscovery.addNeighbor(uint8_t srcNode){
-        nodeTable[srcNode].pktReceived++;
+        calculateQol(srcNode);
         if(nodeTable[srcNode].address == 1){
             // dbg(NEIGHBOR_CHANNEL, "EXISTS: Node %d already has neighbor node %d\n", TOS_NODE_ID, srcNode);
             return;
@@ -61,7 +82,6 @@ implementation{
             nodeTable[srcNode].qol = 0.0;
             return;
         }
-        calculateQol(srcNode);
     }
 
     void refreshTable(){
@@ -115,7 +135,7 @@ implementation{
 
                 }
                 else{
-                    dbg_clear(NEIGHBOR_CHANNEL, "Main Node %d   Neighbor Node %d   %d (sent) %d (received) %f (qol)\n", TOS_NODE_ID, i, nodeTable[i].pktSent, nodeTable[i].pktReceived, nodeTable[i].qol);
+                    dbg_clear(NEIGHBOR_CHANNEL, "Main Node %d   Neighbor Node %d   %d (sent) %d (received) %.4f (qol)\n", TOS_NODE_ID, i, nodeTable[i].pktSent, nodeTable[i].pktReceived, nodeTable[i].qol);
                     // dbg_clear(NEIGHBOR_CHANNEL, "Node %d's Link Quality with Node %d: %d\n", TOS_NODE_ID, i, qol);
                 }  
             }
@@ -134,7 +154,6 @@ implementation{
     }
 
     event void discoveryTimer.fired(){
-        pack pkt;
         uint8_t i;
         if(active){
             makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 1, PROTOCOL_NEIGHBOR, sqNumber, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);

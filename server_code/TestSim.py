@@ -147,8 +147,8 @@ def main():
     s.bootAll()
     s.addChannel(s.COMMAND_CHANNEL)
     s.addChannel(s.GENERAL_CHANNEL)
-    # s.addChannel(s.NEIGHBOR_CHANNEL);
-    s.addChannel(s.FLOODING_CHANNEL)
+    s.addChannel(s.NEIGHBOR_CHANNEL);
+    # s.addChannel(s.FLOODING_CHANNEL)
 
     s.runTime(20);
     s.ping(1, 2, "Hello, World");
@@ -158,9 +158,9 @@ def main():
     s.flood(1, 3, "Flood packet");
     s.runTime(20);
 
-    s.runTime(50);
+    s.runTime(500);
     # s.flood(2, 18, "Sending Flood Message: Hi!");
-    s.runTime(30);
+    s.runTime(300);
     
     # s.runTime(30);
     # s.neighborDMP(1);
