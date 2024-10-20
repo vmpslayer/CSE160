@@ -26,6 +26,8 @@ module Node{
    uses interface Flooding;
 
    uses interface NeighborDiscovery;
+
+   uses interface LinkStateRouting;
 }
 
 implementation{
@@ -60,6 +62,10 @@ implementation{
             // Ping protocol
             case 0:
                dbg(GENERAL_CHANNEL, "Package Payload: %s\n", myMsg->payload);
+               break;
+            // Link State protocol
+            case 2:
+               call LinkStateRouting.receiveHandler(*myMsg);
                break;
             // Flood protocol
             case 6:
