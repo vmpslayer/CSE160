@@ -10,9 +10,9 @@ implementation
     components new TimerMilliC() as linkStateTimer;
     LinkStateRoutingP.linkStateTimer -> linkStateTimer;
 
-    components new NeighborDiscoveryC() as NeighborDiscovery;
+    components NeighborDiscoveryC as NeighborDiscovery;
     LinkStateRoutingP.NeighborDiscovery -> NeighborDiscovery;
 
-    components new FloodingC() as Flooding;
+    components FloodingC as Flooding;
     LinkStateRoutingP.Flooding -> Flooding;
 }

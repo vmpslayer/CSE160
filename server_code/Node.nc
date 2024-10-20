@@ -39,7 +39,6 @@ implementation{
    event void Boot.booted(){
       call AMControl.start();
       dbg(GENERAL_CHANNEL, "Booted\n");
-      call NeighborDiscovery.findNeighbor();
    }
 
    event void AMControl.startDone(error_t err){
@@ -95,11 +94,19 @@ implementation{
       call Sender.send(sendPackage, destination);
    }
    
-   event void CommandHandler.printNeighbors(){}
+   event void CommandHandler.printNeighbors(){
+      if(call NeighborDiscovery.findNeighbor() == SUCCESS){
+         dbg(NEIGHBOR_CHANNEL, "SUCCESS: Find Neighbor Activated\n");
+      }
+   }
 
    event void CommandHandler.printRouteTable(){}
 
-   event void CommandHandler.printLinkState(){}
+   event void CommandHandler.printLinkState(uint16_t desination, uint8_t *payload){
+      dbg(ROUTING_CHANNEL, "SUCCESS: Link State Routing Activated\n")
+      makePack(&sendPackage, TOS_NODE_ID, destination, )
+      if(call LinkStateRouting.
+   }
 
    event void CommandHandler.printDistanceVector(){}
 
