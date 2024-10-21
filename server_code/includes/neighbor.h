@@ -14,7 +14,6 @@ typedef struct Neighbor{
     uint8_t pktReceived; // For calculations, X = total packets received
     uint8_t pktSent; // For calculations, Y = total packets sent
     float qol; // Calculated for quality of life (quality of link hahaha)
-    bool active;
 } Neighbor;
 
 void logNeighbor(Neighbor *neighbor){

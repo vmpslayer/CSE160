@@ -78,7 +78,7 @@ implementation{
                 break;
             case CMD_DIJKSTRA:
                 dbg(COMMAND_CHANNEL, "Command Type: Dijkstra\n");
-                signal CommandHandler.dijkstra(buff[0], &buff[1]);
+                signal CommandHandler.Dijkstra();
             default:
                 dbg(COMMAND_CHANNEL, "CMD_ERROR: \"%d\" does not match any known commands.\n", msg->id);
                 break;

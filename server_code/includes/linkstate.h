@@ -15,7 +15,7 @@ void logLSRoute(LinkState *route){
     uint8_t i;
 
     for(i = 0; i < MAX_NEIGHBORS; i++){
-        dbg(GENERAL_CHANNEL, "Node Address: %hhu     Neighbor Count: %hhu\n", route->address, route->cost);
+        dbg(GENERAL_CHANNEL, "Node Address: %hhu     Neighbor Count: %hhu\n", route->address, route->neighbors[i]);
     }
 };
 

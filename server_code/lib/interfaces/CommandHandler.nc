@@ -10,4 +10,5 @@ interface CommandHandler{
    event void setAppServer();
    event void setAppClient();
    event void flood(uint16_t destination, uint8_t *payload);
+   event void Dijkstra();
 }

@@ -94,14 +94,14 @@ implementation{
         uint8_t i;
         if(active){
             makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 1, PROTOCOL_NEIGHBOR, sqNumber, (uint8_t*)"Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+            for(i = 0; i < MAX_NEIGHBORS; i++){
+                if(nodeTable[i].address != 0){
+                    nodeTable[i].pktSent++;
+                }
+            }
             if(call Sender.send(pkt, AM_BROADCAST_ADDR) == SUCCESS){
                 // dbg(NEIGHBOR_CHANNEL, "SUCCESS: Neighbor Discovery packet (%d) sent\n", sqNumber);
                 sqNumber++;
-                for(i = 0; i < MAX_NEIGHBORS; i++){
-                    if(nodeTable[i].address != 0){
-                        nodeTable[i].pktSent++;
-                    }
-                }
                 // dbg(NEIGHBOR_CHANNEL, "PRINT: %d \n", nodeTable[TOS_NODE_ID].pktSent);
             }
             else{
@@ -121,9 +121,9 @@ implementation{
         // Upon reception of a neighbor discovery packet, receiving node must reply back
         if(msg.dest == AM_BROADCAST_ADDR){
             makePack(&pkt, TOS_NODE_ID, msg.src, 1, PROTOCOL_NEIGHBOR, msg.seq, (uint8_t*)msg.payload, PACKET_MAX_PAYLOAD_SIZE);
+            nodeTable[msg.src].pktReceived = msg.seq;
             if(call Sender.send(pkt, msg.src) == SUCCESS){
                 dbg_clear(NEIGHBOR_CHANNEL, "Reply sent from Node %d to Node %d", msg.src, TOS_NODE_ID);
-                nodeTable[msg.src].pktReceived = msg.seq;
             }
             else{
                 dbg_clear(NEIGHBOR_CHANNEL, "ERROR: Cannot send reply to Node %d", msg.dest);
@@ -142,11 +142,11 @@ implementation{
     }
 
     void calculateQol(uint8_t srcNode){
-        float weight = 0.50;
+        float weight = 0.30;
         if(nodeTable[srcNode].pktReceived == 0){ // Avoid's division by 0
             return;
         }
-        link = (float)(nodeTable[srcNode].pktReceived) / (float)(nodeTable[srcNode].pktSent);
+        // link = (float)(nodeTable[srcNode].pktReceived) / (float)(nodeTable[srcNode].pktSent);
         nodeTable[srcNode].qol = weight * link + (weight * nodeTable[srcNode].qol);
     }
 
@@ -164,7 +164,7 @@ implementation{
             nodeTable[srcNode].address = 1;
             nodeTable[srcNode].pktReceived = 0;
             nodeTable[srcNode].pktSent = 0;
-            nodeTable[srcNode].qol = 0.0;
+            nodeTable[srcNode].qol = 0.5;
             return;
         }
     }
