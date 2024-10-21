@@ -149,11 +149,11 @@ def main():
     s.addChannel(s.COMMAND_CHANNEL)
     s.addChannel(s.GENERAL_CHANNEL)
     s.addChannel(s.NEIGHBOR_CHANNEL)
-    # s.addChannel(s.ROUTING_CHANNEL)
+    s.addChannel(s.ROUTING_CHANNEL)
     # s.addChannel(s.FLOODING_CHANNEL)
 
     s.runTime(20)
-    s.neighborDMP()
+    s.neighborDMP(3)
     s.runTime(30)
     s.ping(1, 2, "Hello, World")
     s.runTime(10)
