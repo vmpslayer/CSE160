@@ -49,7 +49,15 @@ implementation{
     // 1. Neighbor discovery: Determine current set of neighors per node.
     command error_t LinkStateRouting.initLinkState(){
         uint8_t i;
-        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 20, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)nodeTable, PACKET_MAX_PAYLOAD_SIZE);
+        // We're going to make a packet with the payload, an array of Node addresses that are the neighbors of this Node.
+        // We're going to accomplish this by making an array of uint16_t with the size of 4 so it only takes 8 bytes in the payload
+        uint16_t neighbors[4];
+
+        for(i = 0; i < 4; i++){
+            neighbors[i] = nodeTable[i].address;
+        }
+        
+        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, MAX_TTL, PROTOCOL_LINKSTATE, lsSeqNum, neighbors, PACKET_MAX_PAYLOAD_SIZE);
         for(i = 0; i < MAX_NEIGHBORS; i++){
             dbg(ROUTING_CHANNEL, "nodeTable: %d, %d, %d \n", nodeTable[i].address, nodeTable[i].address, nodeTable[i].qol);    
         }
