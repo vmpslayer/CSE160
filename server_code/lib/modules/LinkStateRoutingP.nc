@@ -49,7 +49,15 @@ implementation{
     // 1. Neighbor discovery: Determine current set of neighors per node.
     command error_t LinkStateRouting.initLinkState(){
         uint8_t i;
-        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 1, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)nodeTable, PACKET_MAX_PAYLOAD_SIZE);
+        // We're going to make a packet with the payload, an array of Node addresses that are the neighbors of this Node.
+        // We're going to accomplish this by making an array of uint16_t with the size of 4 so it only takes 8 bytes in the payload
+        uint16_t neighbors[4];
+
+        for(i = 0; i < 4; i++){
+            neighbors[i] = nodeTable[i].address;
+        }
+        
+        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, MAX_TTL, PROTOCOL_LINKSTATE, lsSeqNum, neighbors, PACKET_MAX_PAYLOAD_SIZE);
         for(i = 0; i < MAX_NEIGHBORS; i++){
             dbg(ROUTING_CHANNEL, "nodeTable: %d, %d, %d \n", nodeTable[i].address, nodeTable[i].address, nodeTable[i].qol);    
         }
@@ -62,6 +70,27 @@ implementation{
     // Filter and placement of neighbors and costs, used in Dijkstra
     command void LinkStateRouting.receiveHandler(pack myMsg){
         uint8_t i;
+        floodPack flood_pack;
+        
+        // Takes stuff from the payload and puts it into floodPack
+        memcpy(&flood_pack, &myMsg.payload, sizeof(floodPack));
+
+        dbg(ROUTING_CHANNEL, "Node %i has received the neighbors from Node %i\n", TOS_NODE_ID, flood_pack.floodSource);
+
+        // Add the stuff from the payload and put it into the link state
+        // I don't know how to put it into words but this makes sense in my head
+        linkTable[flood_pack.floodSource - 1].address = flood_pack.floodSource;
+        for(i = 0; i < MAX_NEIGHBORS; i++){
+            linkTable[flood_pack.floodSource - 1].neighbor[i] = flood_pack.payload[i].address;
+        }
+
+        call Flooding.receiveHandler(myMsg);
+    }
+
+    // 2. Link State Flooding: Tell all nodes about all neighbors, use proj 1 to disseminate link-state packets
+    // Filter and placement of neighbors and costs, used in Dijkstra
+    // event void Flooding.updateListener(pack myMsg){
+    //     uint8_t i;
 
         dbg(ROUTING_CHANNEL, "SUCCESS: Link-State packet from %d received by Node %d", myMsg.src, myMsg.dest);
         for(i = 0; i < MAX_NEIGHBORS; i++){
