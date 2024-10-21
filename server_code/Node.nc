@@ -12,6 +12,9 @@
 #include "includes/CommandMsg.h"
 #include "includes/sendInfo.h"
 #include "includes/channels.h"
+#include "includes/neighbor.h"
+#include "includes/flood.h"
+#include "includes/linkstate.h"
 
 module Node{
    uses interface Boot;
@@ -38,6 +41,7 @@ implementation{
 
    event void Boot.booted(){
       call AMControl.start();
+      call NeighborDiscovery.initNeighborDisco();
       dbg(GENERAL_CHANNEL, "Booted\n");
    }
 
@@ -94,18 +98,15 @@ implementation{
       call Sender.send(sendPackage, destination);
    }
    
-   event void CommandHandler.printNeighbors(){
-      if(call NeighborDiscovery.findNeighbor() == SUCCESS){
-         dbg(NEIGHBOR_CHANNEL, "SUCCESS: Find Neighbor Activated\n");
-      }
-   }
+   event void CommandHandler.printNeighbors(){}
 
    event void CommandHandler.printRouteTable(){}
 
-   event void CommandHandler.printLinkState(uint16_t desination, uint8_t *payload){
-      dbg(ROUTING_CHANNEL, "SUCCESS: Link State Routing Activated\n")
-      makePack(&sendPackage, TOS_NODE_ID, destination, )
-      if(call LinkStateRouting.
+   event void CommandHandler.printLinkState(uint16_t destination, uint8_t *payload){
+      makePack(&sendPackage, TOS_NODE_ID, destination, 1, PROTOCOL_LINKSTATE, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+      if(call LinkStateRouting.initLinkState() == SUCCESS){
+         dbg(ROUTING_CHANNEL, "SUCCESS: Link State Routing Activated\n");
+      }
    }
 
    event void CommandHandler.printDistanceVector(){}
@@ -130,6 +131,8 @@ implementation{
          dbg(FLOODING_CHANNEL, "FLOOD FAIL\n");
       }
    }
+   
+   event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
       Package->src = src;
