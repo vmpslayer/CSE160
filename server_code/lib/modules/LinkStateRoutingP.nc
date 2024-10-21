@@ -1,4 +1,5 @@
 #include "../../includes/linkstate.h"
+#include "../../includes/routing.h"
 
 module LinkStateRoutingP{
     provides interface LinkStateRouting;
@@ -48,7 +49,7 @@ implementation{
     // 1. Neighbor discovery: Determine current set of neighors per node.
     command error_t LinkStateRouting.initLinkState(){
         uint8_t i;
-        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 1, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)nodeTable, PACKET_MAX_PAYLOAD_SIZE);
+        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 20, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)nodeTable, PACKET_MAX_PAYLOAD_SIZE);
         for(i = 0; i < MAX_NEIGHBORS; i++){
             dbg(ROUTING_CHANNEL, "nodeTable: %d, %d, %d \n", nodeTable[i].address, nodeTable[i].address, nodeTable[i].qol);    
         }
@@ -61,8 +62,21 @@ implementation{
     // Filter and placement of neighbors and costs, used in Dijkstra
     command void LinkStateRouting.receiveHandler(pack myMsg){
         uint8_t i;
-        pack msg;
+        floodPack flood_pack;
         
+        // Takes stuff from the payload and puts it into floodPack
+        memcpy(&flood_pack, &myMsg.payload, sizeof(floodPack));
+
+        dbg(ROUTING_CHANNEL, "Node %i has received the neighbors from Node %i\n", TOS_NODE_ID, flood_pack.floodSource);
+
+        // Add the stuff from the payload and put it into the link state
+        // I don't know how to put it into words but this makes sense in my head
+        linkTable[flood_pack.floodSource - 1].address = flood_pack.floodSource;
+        for(i = 0; i < MAX_NEIGHBORS; i++){
+            linkTable[flood_pack.floodSource - 1].neighbor[i] = flood_pack.payload[i].address;
+        }
+
+        call Flooding.receiveHandler(myMsg);
     }
 
     // 2. Link State Flooding: Tell all nodes about all neighbors, use proj 1 to disseminate link-state packets
