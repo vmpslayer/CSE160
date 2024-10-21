@@ -12,6 +12,7 @@ class TestSim:
     # COMMAND TYPES
     CMD_PING = 0
     CMD_NEIGHBOR_DUMP = 1
+    CMD_LINK_STATE_DUMP = 2
     CMD_ROUTE_DUMP=3
     CMD_FLOOD=11
 
@@ -47,16 +48,16 @@ class TestSim:
 
     # Load a topo file and use it.
     def loadTopo(self, topoFile):
-        print('Creating Topo!')
+        print 'Creating Topo!'
         # Read topology file.
         topoFile = 'topo/'+topoFile
         f = open(topoFile, "r")
         self.numMote = int(f.readline())
-        print('Number of Motes', self.numMote)
+        print 'Number of Motes', self.numMote
         for line in f:
             s = line.split()
             if s:
-                print( " ", s[0], " ", s[1], " ", s[2])
+                print " ", s[0], " ", s[1], " ", s[2]
                 self.r.add(int(s[0]), int(s[1]), float(s[2]))
                 if not int(s[0]) in self.moteids:
                     self.moteids=self.moteids+[int(s[0])]
@@ -66,8 +67,8 @@ class TestSim:
     # Load a noise file and apply it.
     def loadNoise(self, noiseFile):
         if self.numMote == 0:
-            print("Create a topo first")
-            return;
+            print "Create a topo first"
+            return
 
         # Get and Create a Noise Model
         noiseFile = 'noise/'+noiseFile
@@ -80,23 +81,23 @@ class TestSim:
                 self.t.getNode(i).addNoiseTraceReading(val)
 
         for i in self.moteids:
-            print("Creating noise model for ",i)
+            print "Creating noise model for ",i
             self.t.getNode(i).createNoiseModel()
 
     def bootNode(self, nodeID):
         if self.numMote == 0:
-            print("Create a topo first")
-            return;
+            print "Create a topo first"
+            return
         self.t.getNode(nodeID).bootAtTime(1333*nodeID)
 
     def bootAll(self):
-        i=0
+        i=0;
         for i in self.moteids:
             self.bootNode(i)
 
     def moteOff(self, nodeID):
         self.t.getNode(nodeID).turnOff()
-
+        
     def moteOn(self, nodeID):
         self.t.getNode(nodeID).turnOn()
 
@@ -117,27 +118,29 @@ class TestSim:
         self.pkt.setData(self.msg.data)
         self.pkt.setDestination(dest)
         self.pkt.deliver(dest, self.t.time()+5)
-        print(ID)
+        # print(ID)
     
 
     def ping(self, source, dest, msg):
         self.sendCMD(self.CMD_PING, source, "{0}{1}".format(chr(dest),msg))
-
+    
     def neighborDMP(self, destination):
         self.sendCMD(self.CMD_NEIGHBOR_DUMP, destination, "neighbor command")
 
-    def cmdRouteDMP(self, destination):
-        self.sendCMD(self.CMD_ROUTETABLE_DUMP, destination, "routing command")
+    def routeDMP(self, destination):
+        self.sendCMD(self.CMD_ROUTE_DUMP, destination, "routing command")
 
     def addChannel(self, channelName, out=sys.stdout):
-        print('Adding Channel', channelName)
+        print 'Adding Channel', channelName
         self.t.addChannel(channelName, out)
 
     def flood(self, source, dest, msg):
         self.sendCMD(self.CMD_FLOOD, source, "{0}{1}".format(chr(dest),msg))
+        
+    def linkStateDMP(self, dest):
+        self.sendCMD(self.CMD_LINK_STATE_DUMP, dest, "link state command")
 
     # def cmdRouteDMP(destination):
-    #     self.sendCMD()
 
 
 def main():
@@ -148,9 +151,11 @@ def main():
     s.bootAll()
     s.addChannel(s.COMMAND_CHANNEL)
     s.addChannel(s.GENERAL_CHANNEL)
+    # s.addChannel(s.NEIGHBOR_CHANNEL);
     s.addChannel(s.NEIGHBOR_CHANNEL)
     s.addChannel(s.ROUTING_CHANNEL)
     # s.addChannel(s.FLOODING_CHANNEL)
+    s.addChannel(s.ROUTING_CHANNEL)
 
     s.runTime(20)
     s.neighborDMP(3)
@@ -160,16 +165,20 @@ def main():
     s.ping(1, 3, "Hi!")
     s.runTime(10)
     s.flood(1, 3, "Flood packet")
-    s.runTime(20)
-
-    # s.runTime(500)
-    # s.flood(2, 18, "Sending Flood Message: Hi!");
-    # s.runTime(300)
+    s.runTime(50)
     
-    # s.runTime(30);
-    # s.neighborDMP(1);
-    # s.runTime(20);
-    # s.neighborDMP(2);
+    for i in range(20):
+        s.linkStateDMP(i)
+        s.runTime(1)
+
+    s.runTime(200)
+    s.flood(2, 18, "MY BALLS")
+    s.runTime(300)
+    
+    # s.runTime(30)
+    # s.neighborDMP(1)
+    # s.runTime(20)
+    # s.neighborDMP(2)
 
 if __name__ == '__main__':
     main()

@@ -32,7 +32,7 @@ implementation{
     command error_t Flooding.initFlood(pack msg){
         dbg(FLOODING_CHANNEL, "Node %i is opening the floodgates!\n", TOS_NODE_ID);
         // Make packet with flooding header
-        makePack(&sendPackage, msg.src, msg.src, msg.dest, msg.TTL, msg.protocol, sequence++, *(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
+        makePack(&sendPackage, msg.src, msg.src, msg.dest, msg.TTL, msg.protocol, sequence++, (uint8_t*)(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
         // cache packet
         cache[cacheIndex].seq = msg.seq;
         cache[cacheIndex].floodSource = msg.src;
@@ -58,7 +58,7 @@ implementation{
         flood_cache.seq = msg.seq;
         flood_cache.floodSource = flood_pack.floodSource;
 
-        if(msg.TTL == 1){ // If time to live expires
+        if(msg.TTL <= 1){ // If time to live expires
             return FAIL; // Drop
         }
 
@@ -77,17 +77,19 @@ implementation{
             }
         }
 
+        msg.TTL--;
+
         if(TOS_NODE_ID == msg.dest){ // Send a reply
             if(msg.protocol == PROTOCOL_FLOODINGREPLY){
                 dbg(FLOODING_CHANNEL, "Acknowledgement received!\n");
                 received = TRUE;
                 return SUCCESS;
             }
-            makePack(&sendPackage, TOS_NODE_ID, TOS_NODE_ID, flood_pack.floodSource, 20, PROTOCOL_FLOODINGREPLY, msg.seq, *(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
+            makePack(&sendPackage, TOS_NODE_ID, TOS_NODE_ID, flood_pack.floodSource, 20, PROTOCOL_FLOODINGREPLY, msg.seq, (uint8_t*)(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
             call Sender.send(sendPackage, AM_BROADCAST_ADDR);
         }
         else{ // If not, broadcast again
-            makePack(&sendPackage, flood_pack.floodSource, TOS_NODE_ID, msg.dest, (msg.TTL - 1), msg.protocol, msg.seq, *(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
+            makePack(&sendPackage, flood_pack.floodSource, TOS_NODE_ID, msg.dest, msg.TTL, msg.protocol, msg.seq, (uint8_t*)(msg.payload), PACKET_MAX_PAYLOAD_SIZE);
             call Sender.send(sendPackage, AM_BROADCAST_ADDR);
         }
     }
@@ -112,21 +114,20 @@ implementation{
             call Sender.send(sendPackage, AM_BROADCAST_ADDR);
             call floodTimer.startOneShot(5000);
         }
-
     }
 
     // New makePack that includes flooding header
     void makePack(pack *Package, uint16_t floodSource, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
         floodPack header;
         header.floodSource = floodSource;
-        memcpy(&header.payload, &payload, FLOODING_MAX_PAYLOAD_SIZE);
+        memcpy(&header.payload, &payload, length);
     
         Package->src = src;
         Package->dest = dest;
         Package->TTL = TTL;
         Package->seq = seq;
         Package->protocol = protocol;
-        memcpy(Package->payload, &header, PACKET_MAX_PAYLOAD_SIZE);
+        memcpy(Package->payload, &header, length);
         // dbg(FLOODING_CHANNEL, "Flooding header successfully added!\n"); Debugging message found bug
    }
 }
