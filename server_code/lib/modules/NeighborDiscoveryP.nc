@@ -20,8 +20,6 @@ implementation{
         // Y = total packets send
         // Link quality (t + 1) = X(t + 1) / Y(t + 1) = 60/120 = 50%
     bool active = FALSE; // 0 = Receiving; 1 = Sending
-    bool knownNeighbor = FALSE; // Neighbor Check // 0 = unknown, 1 = known
-    bool deadNeighbor = FALSE;
     uint8_t sqNumber = 0;
     float link = 0;
     Neighbor nodeTable[MAX_NEIGHBORS]; // Houses just THIS node's neighbors
@@ -95,7 +93,7 @@ implementation{
     event void discoveryTimer.fired(){
         uint8_t i;
         if(active){
-            makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 1, PROTOCOL_NEIGHBOR, sqNumber, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+            makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, 1, PROTOCOL_NEIGHBOR, sqNumber, (uint8_t*)"Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
             if(call Sender.send(pkt, AM_BROADCAST_ADDR) == SUCCESS){
                 // dbg(NEIGHBOR_CHANNEL, "SUCCESS: Neighbor Discovery packet (%d) sent\n", sqNumber);
                 sqNumber++;
@@ -111,6 +109,7 @@ implementation{
             }
         }
         listHood();
+        signal NeighborDiscovery.updateListener(nodeTable, sizeof(Neighbor) * MAX_NEIGHBORS);
     }
 
     // 2. We listen for the Neighbor Discovery packet
@@ -121,10 +120,10 @@ implementation{
         dbg(NEIGHBOR_CHANNEL, "SUCCESS: Discovery Packet %d Received from %d. ", msg.seq, msg.src);
         // Upon reception of a neighbor discovery packet, receiving node must reply back
         if(msg.dest == AM_BROADCAST_ADDR){
-            makePack(&pkt, TOS_NODE_ID, msg.src, 1, PROTOCOL_NEIGHBOR, msg.seq, "Neighbor Test", PACKET_MAX_PAYLOAD_SIZE);
+            makePack(&pkt, TOS_NODE_ID, msg.src, 1, PROTOCOL_NEIGHBOR, msg.seq, (uint8_t*)msg.payload, PACKET_MAX_PAYLOAD_SIZE);
             if(call Sender.send(pkt, msg.src) == SUCCESS){
                 dbg_clear(NEIGHBOR_CHANNEL, "Reply sent from Node %d to Node %d", msg.src, TOS_NODE_ID);
-                nodeTable[msg.src].pktReceived++;
+                nodeTable[msg.src].pktReceived = msg.seq;
             }
             else{
                 dbg_clear(NEIGHBOR_CHANNEL, "ERROR: Cannot send reply to Node %d", msg.dest);
@@ -132,7 +131,11 @@ implementation{
             call NeighborDiscovery.addNeighbor(msg.src);
         }
         else if(msg.dest == TOS_NODE_ID){
+            dbg_clear(NEIGHBOR_CHANNEL, "Initial Node has received reply : %d", sqNumber);
             call NeighborDiscovery.addNeighbor(msg.src);
+        }
+        else{
+            return FAIL;
         }
         dbg_clear(NEIGHBOR_CHANNEL, "\n");
         return SUCCESS;
