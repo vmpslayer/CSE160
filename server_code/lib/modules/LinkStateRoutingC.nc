@@ -12,4 +12,7 @@ implementation
 
     components FloodingC as Flooding;
     LinkStateRoutingP.Flooding -> Flooding;
+
+    components new SimpleSendC(AM_PACK) as Sender;
+    FloodingP.Sender -> Sender;
 }

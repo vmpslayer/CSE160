@@ -13,8 +13,9 @@ class TestSim:
     CMD_PING = 0
     CMD_NEIGHBOR_DUMP = 1
     CMD_LINK_STATE_DUMP = 2
-    CMD_ROUTE_DUMP=3
-    CMD_FLOOD=11
+    CMD_ROUTE_DUMP = 3
+    CMD_FLOOD = 11
+    CMD_DIJKSTRA = 12
 
     # CHANNELS - see includes/channels.h
     COMMAND_CHANNEL="command"
@@ -139,6 +140,9 @@ class TestSim:
         
     def linkStateDMP(self, dest):
         self.sendCMD(self.CMD_LINK_STATE_DUMP, dest, "link state command")
+        
+    def dijkstra(self):
+        self.sendCMD(self.CMD_DIJKSTRA)
 
     # def cmdRouteDMP(destination):
 
@@ -152,8 +156,7 @@ def main():
     s.addChannel(s.COMMAND_CHANNEL)
     s.addChannel(s.GENERAL_CHANNEL)
     # s.addChannel(s.NEIGHBOR_CHANNEL);
-    s.addChannel(s.NEIGHBOR_CHANNEL)
-    s.addChannel(s.ROUTING_CHANNEL)
+    # s.addChannel(s.NEIGHBOR_CHANNEL)
     # s.addChannel(s.FLOODING_CHANNEL)
     s.addChannel(s.ROUTING_CHANNEL)
 

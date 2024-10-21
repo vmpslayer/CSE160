@@ -2,7 +2,7 @@
 #include "../../includes/packet.h"
 interface LinkStateRouting{
     command error_t initLinkState();
-    // command void listRoute(uint8_t srcNode);
-    // command void printLinkState();
+    command error_t forward();
     command void receiveHandler(pack myMsg);
+    command void listRoute(uint8_t srcNode);
 }

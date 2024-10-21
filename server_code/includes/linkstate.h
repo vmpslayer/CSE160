@@ -9,7 +9,6 @@
 typedef struct LinkState{
     nx_uint8_t address; // Identifier for node
     uint16_t neighbors[MAX_NEIGHBORS];
-    uint16_t cost; // Amount of hops it takes to get to node
 } LinkState;
 
 void logLSRoute(LinkState *route){
