@@ -52,6 +52,7 @@ implementation{
     // 1. Extract payload, get neighbor data from payload. Store it.
     // 2. Flood packet
     command void LinkStateRouting.receiveHandler(pack myMsg){
+        pack msg;
         
     }
 
