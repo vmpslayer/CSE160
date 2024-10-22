@@ -49,15 +49,32 @@ implementation{
     // 1. Neighbor discovery: Determine current set of neighors per node.
     command error_t LinkStateRouting.initLinkState(){
         uint8_t i;
+        uint8_t j;
         // We're going to make a packet with the payload, an array of Node addresses that are the neighbors of this Node.
         // We're going to accomplish this by making an array of uint16_t with the size of 4 so it only takes 8 bytes in the payload
-        uint16_t neighbors[4];
+        uint8_t neighbors[4] = {0,0,0,0};
+        i = 0;
 
-        for(i = 0; i < 4; i++){
-            neighbors[i] = nodeTable[i].address;
+        while(j < 20 && i < 4){
+            if(nodeTable[j].address != 0){
+                neighbors[i] = j;
+                i++;
+            }
+            j++;
         }
         
-        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, MAX_TTL, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)neighbors, PACKET_MAX_PAYLOAD_SIZE);
+
+        for(i = 0; i < 4; i++){
+            dbg(ROUTING_CHANNEL,"Neighbor %d, %u\n", i, neighbors[i]);
+        }
+        
+        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, MAX_TTL, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)neighbors, sizeof(neighbors));
+
+        /*
+        for(i = 0; i < 4; i++){
+            dbg(ROUTING_CHANNEL,"Neighbor %d, %u\n", i, neighbors[i]);
+        }
+        */
 
         call Flooding.initFlood(pkt);
     }
@@ -71,32 +88,27 @@ implementation{
         uint8_t i;
         uint8_t j;
         floodPack flood_pack;
+        uint8_t array[4];
         
         // Takes stuff from the payload and puts it into floodPack
         memcpy(&flood_pack, &myMsg.payload, sizeof(floodPack));
 
-        dbg(ROUTING_CHANNEL, "Node %i has received the neighbors from Node %i\n", TOS_NODE_ID, flood_pack.floodSource);
-
-        // Add the stuff from the payload and put it into the link state
-        // I don't know how to put it into words but this makes sense in my head
-        linkTable[flood_pack.floodSource - 1].address = flood_pack.floodSource;
-        memcpy(linkTable, &flood_pack.payload, PACKET_MAX_PAYLOAD_SIZE);
-        for(i = 1; i < MAX_NEIGHBORS; i++){
-            if(nodeTable[i].address != 0){
-                linkTable[flood_pack.floodSource].neighbors[i] = 1;
-            }
+        /*
+        for(i = 0; i < 4; i++){
+            dbg(ROUTING_CHANNEL,"Received neighbor %d, %u from %i\n", i, flood_pack.payload[i], myMsg.src);
         }
+        */
 
-        // for(i = 0; i < MAX_NEIGHBORS; i++){
-        //     if(linkTable[i].address != 0){
-        //         dbg(ROUTING_CHANNEL, "nodeTable: %d %d \n", i, linkTable[i].address); 
-        //     }
-        //     for(j = 0; j < MAX_NEIGHBORS; j++){
-        //         // if(linkTable[i].neighbors[j] != 0){
-        //             dbg(ROUTING_CHANNEL, "neighbors: %d \n", j);
-        //         // }
-        //     }
-        // }
+        // dbg(ROUTING_CHANNEL, "These are the neighbors of: %i\n", flood_pack.floodSource);
+        
+        linkTable[flood_pack.floodSource].address = flood_pack.floodSource;
+        memcpy(&linkTable[flood_pack.floodSource].neighbors, flood_pack.payload, sizeof(flood_pack.payload));
+
+        dbg(ROUTING_CHANNEL, "Node %i has the neighbors: ", linkTable[flood_pack.floodSource].address);
+        for(i = 0; i < 4; i++){
+            dbg_clear(ROUTING_CHANNEL, "%i ", linkTable[flood_pack.floodSource].neighbors[i]);
+        }
+        dbg_clear(ROUTING_CHANNEL, "\n");
 
         call Flooding.receiveHandler(myMsg);
     }
