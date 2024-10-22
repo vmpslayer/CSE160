@@ -20,6 +20,7 @@ implementation{
         // Y = total packets send
         // Link quality (t + 1) = X(t + 1) / Y(t + 1) = 60/120 = 50%
     bool active = FALSE; // 0 = Receiving; 1 = Sending
+    bool callLinkState = FALSE;
     uint8_t sqNumber = 0;
     float link = 0;
     Neighbor nodeTable[MAX_NEIGHBORS]; // Houses just THIS node's neighbors
@@ -109,7 +110,9 @@ implementation{
             }
         }
         listHood();
-        signal NeighborDiscovery.updateListener(nodeTable, sizeof(Neighbor) * MAX_NEIGHBORS);
+        if(callLinkState == TRUE){
+            signal NeighborDiscovery.updateListener(nodeTable, sizeof(Neighbor) * MAX_NEIGHBORS);
+        }
     }
 
     // 2. We listen for the Neighbor Discovery packet
@@ -133,6 +136,7 @@ implementation{
         else if(msg.dest == TOS_NODE_ID){
             dbg_clear(NEIGHBOR_CHANNEL, "Initial Node has received reply : %d", sqNumber);
             call NeighborDiscovery.addNeighbor(msg.src);
+            callLinkState = TRUE;
         }
         else{
             return FAIL;
