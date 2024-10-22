@@ -131,12 +131,12 @@ implementation{
          dbg(FLOODING_CHANNEL, "FLOOD FAIL\n");
       }
    }
-   
-   event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
 
    event void CommandHandler.Dijkstra(){
       call LinkStateRouting.Dijkstra();
    }
+   
+   event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
       Package->src = src;

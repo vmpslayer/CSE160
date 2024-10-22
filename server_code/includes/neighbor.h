@@ -10,7 +10,7 @@ enum{
 };
 
 typedef struct Neighbor{
-    nx_uint8_t address; // Identifier for node
+    nx_uint16_t address; // Identifier for node
     uint8_t pktReceived; // For calculations, X = total packets received
     uint8_t pktSent; // For calculations, Y = total packets sent
     float qol; // Calculated for quality of life (quality of link hahaha)
