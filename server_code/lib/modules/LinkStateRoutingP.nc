@@ -108,7 +108,7 @@ implementation{
     // table that allows us to determine the next hop to forward a packet toward its destination
     command error_t LinkStateRouting.Dijkstra(){
         uint8_t i;
-        bool considered[MAX_NEIGHBORS];
+        bool allConsidered[MAX_NEIGHBORS];
         
         dbg(ROUTING_CHANNEL,"SUCCESS: Dijkstra Algorithm Started\n");
         // Initialization:
@@ -120,18 +120,18 @@ implementation{
         for(i = 1; i < MAX_NEIGHBORS; i++){
             if(linkTable[i].address == TOS_NODE_ID){
                 forwardingTable[i].cost = 0;
-                considered[i] = TRUE;
+                allConsidered[i] = TRUE;
             }
             else if(nodeTable[i].address == 1){
                 // dbg(GENERAL_CHANNEL, "%d \n", i);
                 forwardingTable[i].cost = 1;
                 forwardingTable[i].nextHop = i;
-                considered[i] = FALSE;
+                allConsidered[i] = FALSE;
             }
             else{
                 forwardingTable[i].cost = INFINITY;
                 forwardingTable[i].nextHop = INFINITY;
-                considered[i] = FALSE;
+                allConsidered[i] = FALSE;
             }
         }
         // Loop:
@@ -148,15 +148,13 @@ implementation{
             uint8_t lowestCost = INFINITY;
             uint8_t hopCost = 0;
 
-            dbg(ROUTING_CHANNEL, "SUCCESS: REACHED WHILE LOOP\n");
-
-            for(i = 1; i < MAX_NEIGHBORS; i++){
+            for(i = 0; i < MAX_NEIGHBORS; i++){
                 // Handle considered, if all elements are considered, we then exit this loop
                 if(considered[i]){
                     break;
                 }
                 // Find C(w) is the smallest in unconsidered
-                if(!considered[i] && forwardingTable[i].cost < lowestCost){
+                if(!allConsidered[i] && forwardingTable[i].cost < lowestCost){
                     lowestCost = forwardingTable[i].cost;
                     w = i;
                     dbg(ROUTING_CHANNEL, "W: %d\n", w);
@@ -168,19 +166,16 @@ implementation{
 
             // Passed consider check, now checking for neighbors for each node
             // if the cost of my forwardingTable at [w] to a certain node +1 is < cost of neighbor under consideration
-            for(i = 1; i < MAX_NEIGHBORS; i++){
-                // Check all the neighbors of this link (lowest cost link)
-                // linkTable[i] is stuck on a certain node, we check their neighbors.
-                dbg(ROUTING_CHANNEL, "linkTable[w].neighbors[i]: %d \n", linkTable[w].neighbors[i]);
+            for(i = 0; i < 10; i++){
                 if(linkTable[w].neighbors[i] != 0){
                     // C(w) + L(w,n)
                     hopCost = lowestCost + forwardingTable[linkTable[w].neighbors[i]].cost;
                     dbg(ROUTING_CHANNEL, "hopCost: %d \n", hopCost);
 
-                    // Check if the hop cost is lower 
                     if(hopCost < forwardingTable[linkTable[w].neighbors[i]].cost){
+                        dbg(ROUTING_CHANNEL, "I'M IN HERE\n");
                         forwardingTable[linkTable[w].neighbors[i]].cost = hopCost;
-                        forwardingTable[linkTable[w].neighbors[i]].nextHop = forwardingTable[w].nextHop; 
+                        forwardingTable[linkTable[w].neighbors[i]].nextHop = w;
                     }
                 }
             }
