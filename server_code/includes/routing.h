@@ -5,8 +5,8 @@ typedef struct Routing{
     nx_uint8_t address; // Identifier for node
     nx_uint8_t altAddress; // Idenfier for node that has alternate route
     uint8_t cost[MAX_NEIGHBORS]; // Cost it takes (in hops)
-    uint8_t altCost[MAX_NEIGHBORS];
-    nx_uint8_t nextHop;
+    uint8_t altCost[MAX_NEIGHBORS]; // Cost it takes (in hops) but with an ALTERNATE ROUTE BROTHER
+    nx_uint8_t nextHop; // NEXT HOP FOR EACH ADDRESS
 } Routing;
 
 void logRoute(Routing *route){

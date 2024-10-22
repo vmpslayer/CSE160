@@ -146,8 +146,8 @@ implementation{
         if(nodeTable[srcNode].pktReceived == 0){ // Avoid's division by 0
             return;
         }
-        // link = (float)(nodeTable[srcNode].pktReceived) / (float)(nodeTable[srcNode].pktSent);
-        nodeTable[srcNode].qol = weight * link + (weight * nodeTable[srcNode].qol);
+        nodeTable[srcNode].qol = (float)(nodeTable[srcNode].pktReceived) / (float)(nodeTable[srcNode].pktSent);
+        // nodeTable[srcNode].qol = weight * link + (weight * nodeTable[srcNode].qol);
     }
 
     // 2.5. When we receive a packet, we add each neighbor as a... neighbor.

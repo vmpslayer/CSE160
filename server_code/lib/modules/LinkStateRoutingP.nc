@@ -57,19 +57,19 @@ implementation{
             neighbors[i] = nodeTable[i].address;
         }
         
-        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, MAX_TTL, PROTOCOL_LINKSTATE, lsSeqNum, neighbors, PACKET_MAX_PAYLOAD_SIZE);
-        for(i = 0; i < MAX_NEIGHBORS; i++){
-            dbg(ROUTING_CHANNEL, "nodeTable: %d, %d, %d \n", nodeTable[i].address, nodeTable[i].address, nodeTable[i].qol);    
-        }
+        makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, MAX_TTL, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)neighbors, PACKET_MAX_PAYLOAD_SIZE);
 
         call Flooding.initFlood(pkt);
     }
 
-    // 2. Extract payload, get neighbor data from payload. Store it. Flood packet.
-    // Link State Flooding: Tell all nodes about all neighbors, use proj 1 to disseminate link-state packets
-    // Filter and placement of neighbors and costs, used in Dijkstra
+    // 2. Link State Flooding: Tell all nodes about all neighbors, use proj 1 to disseminate link-state packets
+        // Filter and placement of neighbors and costs, used in Dijkstra
+        // Extract payload, get neighbor data from payload. Store it. Flood packet.
+        // Link State Flooding: Tell all nodes about all neighbors, use proj 1 to disseminate link-state packets
+        // Filter and placement of neighbors and costs, used in Dijkstra
     command void LinkStateRouting.receiveHandler(pack myMsg){
         uint8_t i;
+        uint8_t j;
         floodPack flood_pack;
         
         // Takes stuff from the payload and puts it into floodPack
@@ -80,59 +80,105 @@ implementation{
         // Add the stuff from the payload and put it into the link state
         // I don't know how to put it into words but this makes sense in my head
         linkTable[flood_pack.floodSource - 1].address = flood_pack.floodSource;
-        for(i = 0; i < MAX_NEIGHBORS; i++){
-            linkTable[flood_pack.floodSource - 1].neighbor[i] = flood_pack.payload[i].address;
+        memcpy(linkTable, &flood_pack.payload, PACKET_MAX_PAYLOAD_SIZE);
+        for(i = 1; i < MAX_NEIGHBORS; i++){
+            if(nodeTable[i].address != 0){
+                linkTable[flood_pack.floodSource].neighbors[i] = 1;
+            }
         }
+
+        // for(i = 0; i < MAX_NEIGHBORS; i++){
+        //     if(linkTable[i].address != 0){
+        //         dbg(ROUTING_CHANNEL, "nodeTable: %d %d \n", i, linkTable[i].address); 
+        //     }
+        //     for(j = 0; j < MAX_NEIGHBORS; j++){
+        //         // if(linkTable[i].neighbors[j] != 0){
+        //             dbg(ROUTING_CHANNEL, "neighbors: %d \n", j);
+        //         // }
+        //     }
+        // }
 
         call Flooding.receiveHandler(myMsg);
-    }
-
-    // 2. Link State Flooding: Tell all nodes about all neighbors, use proj 1 to disseminate link-state packets
-    // Filter and placement of neighbors and costs, used in Dijkstra
-    // event void Flooding.updateListener(pack myMsg){
-    //     uint8_t i;
-
-        dbg(ROUTING_CHANNEL, "SUCCESS: Link-State packet from %d received by Node %d", myMsg.src, myMsg.dest);
-        for(i = 0; i < MAX_NEIGHBORS; i++){
-            
-        }
-        call Flooding.initFlood(pkt);
     }
 
     // 3. Shortest path calculation using Dijkstra's algorithm: build and keep up to date a routing
     // table that allows us to determine the next hop to forward a packet toward its destination
     command void LinkStateRouting.Dijkstra(){
-    //     uint8_t i;
+        uint8_t i;
+        uint8_t j;
+
+        bool considered[MAX_NEIGHBORS];
         
-    //     // Initialization:
-    //     // N’ = {u} // Compute least cost path from u to all other nodes
-    //     // For all nodes a
-    //     // If a adjacent to u // u initially knows direct-path-cost to direct neighbors
-    //     // Then D(a) = Cu,a // but it may not be the minimum cost!
-    //     //         Else D(a) = ∞
-    //     for(i = 0; i < MAX_NEIGHBORS; i++){
-    //         if(linkTable[i].address == TOS_NODE_ID){
-    //             linkTable[i].cost = 0;
-    //         }
-    //         else if(nodeTable[i].address == 1){
-    //             linkTable[i].cost = 
-    //         }
-    //         else{
-    //             linkTable[i].cost = INFINITY;
-    //         }
-    //     }
-    //     // Loop:
-    //     //     Find a not in N’ such that D(a) is a minimum
-    //     //     Add a to N’
-    //     //     Update D(b) for all b adjacent to a and not in N’:
-    //     //         D(b) = min(D(b), D(a) + Ca,b)
-    //     //     // new least-path-cost to b is either old least-cost-path to 
-    //     // b or known least-cost-path to a plus direction-cost from a to b
-    //     // Until all nodes in N’
-    //     for(i = 0; i < MAX_NEIGHBORS; i++){
+        // Initialization:
+        // N’ = {u} // Compute least cost path from u to all other nodes
+        // For all nodes a
+        // If a adjacent to u // u initially knows direct-path-cost to direct neighbors
+        // Then D(a) = Cu,a // but it may not be the minimum cost!
+        //         Else D(a) = ∞
+        for(i = 0; i < MAX_NEIGHBORS; i++){
+            if(linkTable[i].address == TOS_NODE_ID){
+                forwardingTable[i].cost[i] = 0;
+            }
+            for(j = 0; j < MAX_NEIGHBORS; j++){
+                if(nodeTable[i].address == 1){
+                    forwardingTable[i].cost[j] = 1;
+                }
+                else{
+                    forwardingTable[i].cost[j] = 255;
+                }
+            }
+            forwardingTable[i].nextHop = 255;
+        }
 
-    //     }
+        for(i = 0; i < MAX_NEIGHBORS; i++){
+            dbg(ROUTING_CHANNEL, "forwarding: %d %d \n", i, forwardingTable[i].address); 
 
+            for(j = 0; j < MAX_NEIGHBORS; j++){
+                // if(linkTable[i].neighbors[j] != INFINITY){
+                    dbg(ROUTING_CHANNEL, "neighbors: %d \n", j);
+                // }
+            }
+        }
+        // Loop:
+        //     Find a not in N’ such that D(a) is a minimum
+        //     Add a to N’
+        //     Update D(b) for all b adjacent to a and not in N’:
+        //         D(b) = min(D(b), D(a) + Ca,b)
+        //     // new least-path-cost to b is either old least-cost-path to 
+        // b or known least-cost-path to a plus direction-cost from a to b
+        // Until all nodes in N’
+
+        // Unnconsidered = forwardingTable
+        while(TRUE){
+            bool consider = FALSE; 
+            uint8_t lowestCost = INFINITY;
+            uint8_t costHolder = 0;
+
+            for(i = 0; i < MAX_NEIGHBORS; i++){
+                // Handle considered, if all elements are considered, we then exit this loop
+                if(considered[i]){
+                    consider = TRUE;
+                    break;
+                }
+                // Find C(w) is the smallest in unconsidered
+                if(!considered[i] && forwardingTable[i].cost[i] < lowestCost){
+                    lowestCost = forwardingTable[i].cost[i];
+                }
+                // Check all the neighbors of this link (lowest cost link)
+                // linkTable[i] is stuck on a certain node, we check their neighbors.
+                for(j = 0; j < MAX_NEIGHBORS; j++){
+                    if(!considered[j] && linkTable[i].neighbors[j]){
+                        costHolder = lowestCost + linkTable[i].neighbors[j];
+
+                    }
+                }
+                considered[i] = TRUE;
+            }
+            // Since we exit the loop, we also set consider to true, breaking the while loop
+            if(consider == TRUE){
+                break;
+            }
+        }
     }
 
     // // 4. Forwarding: to send packets using routing table for next hops

@@ -141,8 +141,8 @@ class TestSim:
     def linkStateDMP(self, dest):
         self.sendCMD(self.CMD_LINK_STATE_DUMP, dest, "link state command")
         
-    def dijkstra(self):
-        self.sendCMD(self.CMD_DIJKSTRA)
+    def dijkstra(self, dest):
+        self.sendCMD(self.CMD_DIJKSTRA, dest, "dijkstra command")
 
     # def cmdRouteDMP(destination):
 
@@ -150,14 +150,14 @@ class TestSim:
 def main():
     s = TestSim()
     s.runTime(10)
-    s.loadTopo("example.topo")
+    s.loadTopo("long_line.topo")
     s.loadNoise("no_noise.txt")
     s.bootAll()
     s.addChannel(s.COMMAND_CHANNEL)
     s.addChannel(s.GENERAL_CHANNEL)
-    s.addChannel(s.NEIGHBOR_CHANNEL)
+    # s.addChannel(s.NEIGHBOR_CHANNEL)
     # s.addChannel(s.FLOODING_CHANNEL)
-    # s.addChannel(s.ROUTING_CHANNEL)
+    s.addChannel(s.ROUTING_CHANNEL)
 
     s.runTime(20)
     s.neighborDMP(3)
@@ -172,6 +172,12 @@ def main():
     for i in range(20):
         s.linkStateDMP(i)
         s.runTime(1)
+    
+    s.runTime(50)
+    
+    for i in range(20):    
+        s.dijkstra(i)
+        s.runTime(5)
 
     s.runTime(200)
     s.flood(2, 18, "MY BALLS")
