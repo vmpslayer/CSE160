@@ -126,8 +126,6 @@ implementation{
 
         // Unnconsidered = forwardingTable
         while(TRUE){
-
-            bool consider = FALSE; 
             uint8_t w = 0;
             uint8_t lowestCost = INFINITY;
             uint8_t hopCost = 0;
