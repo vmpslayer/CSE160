@@ -88,7 +88,6 @@ implementation{
         uint8_t i;
         uint8_t j;
         floodPack flood_pack;
-        uint8_t array[4];
         
         // Takes stuff from the payload and puts it into floodPack
         memcpy(&flood_pack, myMsg.payload, sizeof(floodPack));
@@ -100,11 +99,22 @@ implementation{
         */
 
         // dbg(ROUTING_CHANNEL, "These are the neighbors of: %i\n", flood_pack.floodSource);
+
+        
+        dbg(ROUTING_CHANNEL, "Node %i has the neighbors (Packet): ", myMsg.src);
+        for(i = 0; i < 4; i++){
+            dbg_clear(ROUTING_CHANNEL, "%i ", flood_pack.payload[i]);
+        }
+        dbg_clear(ROUTING_CHANNEL, "\n");
+
+        // dbg(ROUTING_CHANNEL, "linkTable[%i].neighbors[0]: ", flood_pack.floodSource, linkTable[flood_pack.floodSource].neighbors[0]);
         
         linkTable[flood_pack.floodSource].address = flood_pack.floodSource;
-        memcpy(&linkTable[flood_pack.floodSource].neighbors, flood_pack.payload, sizeof(flood_pack.payload));
+        for(i = 0; i < 4; i++){
+            dbg_clear(ROUTING_CHANNEL, "%i ", linkTable[flood_pack.floodSource].neighbors[i]);
+        }
 
-        dbg(ROUTING_CHANNEL, "Node %i has the neighbors: ", linkTable[flood_pack.floodSource].address);
+        dbg(ROUTING_CHANNEL, "Node %i has the neighbors (LinkTable): ", linkTable[flood_pack.floodSource].address);
         for(i = 0; i < 4; i++){
             dbg_clear(ROUTING_CHANNEL, "%i ", linkTable[flood_pack.floodSource].neighbors[i]);
         }
