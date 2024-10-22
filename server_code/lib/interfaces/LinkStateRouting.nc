@@ -7,4 +7,5 @@ interface LinkStateRouting{
     command error_t Dijkstra();
     // command error_t forward();
     command void listRouteTable();
+    command void listLinkStateTable();
 }

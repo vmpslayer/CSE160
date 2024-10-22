@@ -50,12 +50,12 @@ implementation{
     command error_t LinkStateRouting.initLinkState(){
         uint8_t i;
         uint8_t j;
-        // We're going to make a packet with the payload, an array of Node addresses that are the neighbors of this Node.
-        // We're going to accomplish this by making an array of uint16_t with the size of 4 so it only takes 8 bytes in the payload
-        uint8_t neighbors[4] = {0,0,0,0};
+        // Initializing an array of addresses with a max of 4 entries
+        uint8_t neighbors[MAX_NEIGHBORS];
         i = 0;
 
-        while(j < 20 && i < 4){
+        // Filling the payload with the information already on the node
+        while(j < 20 && i < MAX_NEIGHBORS){
             if(nodeTable[j].address != 0){
                 neighbors[i] = j;
                 i++;
@@ -63,18 +63,7 @@ implementation{
             j++;
         }
         
-
-        for(i = 0; i < 4; i++){
-            dbg(ROUTING_CHANNEL,"Neighbor %d, %u\n", i, neighbors[i]);
-        }
-        
         makePack(&pkt, TOS_NODE_ID, AM_BROADCAST_ADDR, MAX_TTL, PROTOCOL_LINKSTATE, lsSeqNum, (uint8_t*)neighbors, sizeof(neighbors));
-
-        /*
-        for(i = 0; i < 4; i++){
-            dbg(ROUTING_CHANNEL,"Neighbor %d, %u\n", i, neighbors[i]);
-        }
-        */
 
         call Flooding.initFlood(pkt);
     }
@@ -89,37 +78,16 @@ implementation{
         uint8_t j;
         floodPack flood_pack;
         
-        // Takes stuff from the payload and puts it into floodPack
+        // Copy the payload to parse the data
         memcpy(&flood_pack, myMsg.payload, sizeof(floodPack));
 
-        /*
-        for(i = 0; i < 4; i++){
-            dbg(ROUTING_CHANNEL,"Received neighbor %d, %u from %i\n", i, flood_pack.payload[i], myMsg.src);
-        }
-        */
-
-        // dbg(ROUTING_CHANNEL, "These are the neighbors of: %i\n", flood_pack.floodSource);
-
-        
-        dbg(ROUTING_CHANNEL, "Node %i has the neighbors (Packet): ", myMsg.src);
-        for(i = 0; i < 4; i++){
-            dbg_clear(ROUTING_CHANNEL, "%i ", flood_pack.payload[i]);
-        }
-        dbg_clear(ROUTING_CHANNEL, "\n");
-
-        // dbg(ROUTING_CHANNEL, "linkTable[%i].neighbors[0]: ", flood_pack.floodSource, linkTable[flood_pack.floodSource].neighbors[0]);
-        
         linkTable[flood_pack.floodSource].address = flood_pack.floodSource;
-        for(i = 0; i < 4; i++){
-            dbg_clear(ROUTING_CHANNEL, "%i ", linkTable[flood_pack.floodSource].neighbors[i]);
+        // Fill the linkTable for floodSource address entry with its neighbors
+        for(i = 0; i < MAX_NEIGHBORS; i++){
+            linkTable[flood_pack.floodSource].neighbors[i] = flood_pack.payload[i];
         }
 
-        dbg(ROUTING_CHANNEL, "Node %i has the neighbors (LinkTable): ", linkTable[flood_pack.floodSource].address);
-        for(i = 0; i < 4; i++){
-            dbg_clear(ROUTING_CHANNEL, "%i ", linkTable[flood_pack.floodSource].neighbors[i]);
-        }
-        dbg_clear(ROUTING_CHANNEL, "\n");
-
+        // Flood the neighbor information to the rest of the network
         call Flooding.receiveHandler(myMsg);
     }
 
@@ -228,5 +196,22 @@ implementation{
             dbg_clear(ROUTING_CHANNEL, "%d        %d        %d \n", i, forwardingTable[i].cost, forwardingTable[i].nextHop);
         }
         dbg_clear(ROUTING_CHANNEL, "===========================\n");
+    }
+
+    // Testing purposes
+    command void LinkStateRouting.listLinkStateTable(){
+        int i, j;
+        dbg_clear(ROUTING_CHANNEL, "========================\nLink State Table for Node %d\n", TOS_NODE_ID);
+        dbg_clear(ROUTING_CHANNEL, "Node    Neighbors\n");
+        for(i = 1; i < MAX_NEIGHBORS + 1; i++){
+            dbg_clear(ROUTING_CHANNEL, "%d       ", linkTable[i].address);
+            for(j = 0; j < MAX_NEIGHBORS; j++){
+                if(linkTable[i].neighbors[j] != 0 && linkTable[i].neighbors[j] < MAX_NEIGHBORS){
+                    dbg_clear(ROUTING_CHANNEL, "%d ", linkTable[i].neighbors[j]);
+                }
+            }
+            dbg_clear(ROUTING_CHANNEL, "\n");
+        }
+        dbg_clear(ROUTING_CHANNEL, "========================\n");
     }
 }

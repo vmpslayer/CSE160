@@ -6,7 +6,7 @@
 #include "channels.h"
 
 enum{
-    MAX_NEIGHBORS = 20,
+    MAX_NEIGHBORS = 10,
 };
 
 typedef struct Neighbor{

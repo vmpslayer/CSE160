@@ -107,6 +107,7 @@ implementation{
       if(call LinkStateRouting.initLinkState() == SUCCESS){
          dbg(ROUTING_CHANNEL, "SUCCESS: Link State Routing Activated\n");
       }
+      call LinkStateRouting.listLinkStateTable();
    }
 
    event void CommandHandler.printDistanceVector(){}
