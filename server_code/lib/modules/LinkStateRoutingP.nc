@@ -128,6 +128,7 @@ implementation{
                 forwardingTable[i].nextHop = i;
                 allConsidered[i] = FALSE;
             }
+
             else{
                 forwardingTable[i].cost = INFINITY;
                 forwardingTable[i].nextHop = INFINITY;
@@ -143,6 +144,7 @@ implementation{
         // b or known least-cost-path to a plus direction-cost from a to b
         // Until all nodes in N’
         while(TRUE){
+
             bool consider = FALSE; 
             uint8_t w = 0;
             uint8_t lowestCost = INFINITY;

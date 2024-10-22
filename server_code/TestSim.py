@@ -173,6 +173,10 @@ def main():
         s.linkStateDMP(i)
         s.runTime(10)
     
+    for i in range(10):
+        s.linkStateDMP(i)
+        s.runTime(10)
+
     s.runTime(10)
     
     for i in range(20):    
