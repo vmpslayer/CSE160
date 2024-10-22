@@ -169,14 +169,14 @@ def main():
     # # s.flood(1, 3, "Flood packet")
     # s.runTime(50)
     
-    for i in range(10):
+    for i in range(20):
         s.linkStateDMP(i)
         s.runTime(10)
     
     s.runTime(10)
     
-    for i in range(10):    
-        # s.dijkstra(i)
+    for i in range(20):    
+        s.dijkstra(i)
         s.runTime(100)
         
     # s.runTime(1000)
