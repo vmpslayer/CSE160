@@ -153,11 +153,11 @@ def main():
     s.loadTopo("long_line.topo")
     s.loadNoise("no_noise.txt")
     s.bootAll()
-    s.addChannel(s.COMMAND_CHANNEL)
-    s.addChannel(s.GENERAL_CHANNEL)
+    # s.addChannel(s.COMMAND_CHANNEL)
+    # s.addChannel(s.GENERAL_CHANNEL)
     # s.addChannel(s.NEIGHBOR_CHANNEL)
-    # s.addChannel(s.FLOODING_CHANNEL)
-    s.addChannel(s.ROUTING_CHANNEL)
+    s.addChannel(s.FLOODING_CHANNEL)
+    # s.addChannel(s.ROUTING_CHANNEL)
 
     s.runTime(20)
     s.neighborDMP(3)
@@ -166,7 +166,7 @@ def main():
     s.runTime(10)
     s.ping(1, 3, "Hi!")
     s.runTime(10)
-    s.flood(1, 3, "Flood packet")
+    # s.flood(1, 3, "Flood packet")
     s.runTime(50)
     
     for i in range(20):

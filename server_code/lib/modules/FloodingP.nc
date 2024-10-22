@@ -44,8 +44,10 @@ implementation{
         call Sender.send(sendPackage, AM_BROADCAST_ADDR);
         // start timer
         received = FALSE;
-        call floodTimer.startOneShot(5000);
-
+        if(msg.dest != AM_BROADCAST_ADDR){
+            call floodTimer.startOneShot(5000);
+        }
+    
         return SUCCESS;
     }
 
