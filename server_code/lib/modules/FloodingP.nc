@@ -31,12 +31,7 @@ implementation{
     // Revised by Andre Limos on 10/19/2024
     command error_t Flooding.initFlood(pack msg){
         int i;
-        dbg(FLOODING_CHANNEL, "Node %i is opening the floodgates!\n", TOS_NODE_ID);
-
-        for(i = 0; i < 4; i++){
-            dbg(ROUTING_CHANNEL,"Received neighbor %d, %u\n", i, msg.payload[i]);
-        }
-        
+        dbg(FLOODING_CHANNEL, "Node %i is opening the floodgates!\n", TOS_NODE_ID);        
 
         // Make packet with flooding header
         makePack(&sendPackage, msg.src, msg.src, msg.dest, msg.TTL, msg.protocol, sequence++, (uint8_t*)(msg.payload), PACKET_MAX_PAYLOAD_SIZE);

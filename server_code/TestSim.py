@@ -173,12 +173,23 @@ def main():
         s.linkStateDMP(i)
         s.runTime(10)
     
+    for i in range(10):
+        s.linkStateDMP(i)
+        s.runTime(10)
+
     s.runTime(10)
     
-    for i in range(10):    
-        # s.dijkstra(i)
-        s.runTime(100)
-        
+    #for i in range(10):    
+    #    s.dijkstra(i)
+    #    s.runTime(100)
+    
+    #for i in range(10):    
+    #    s.dijkstra(i)
+    #    s.runTime(100)
+
+    s.dijkstra(1)
+    s.runTime(100)
+
     # s.runTime(1000)
 
     # s.runTime(200)

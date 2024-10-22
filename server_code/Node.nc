@@ -107,7 +107,7 @@ implementation{
       if(call LinkStateRouting.initLinkState() == SUCCESS){
          dbg(ROUTING_CHANNEL, "SUCCESS: Link State Routing Activated\n");
       }
-      call LinkStateRouting.listLinkStateTable();
+      // call LinkStateRouting.listLinkStateTable();
    }
 
    event void CommandHandler.printDistanceVector(){}
@@ -135,6 +135,7 @@ implementation{
 
    event void CommandHandler.Dijkstra(){
       call LinkStateRouting.Dijkstra();
+      call LinkStateRouting.listRouteTable();
    }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}

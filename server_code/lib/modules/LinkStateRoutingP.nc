@@ -109,12 +109,6 @@ implementation{
                 forwardingTable[i].cost = 0;
                 considered[i] = TRUE;
             }
-            else if(nodeTable[i].address == 1){
-                // dbg(GENERAL_CHANNEL, "%d \n", i);
-                forwardingTable[i].cost = 1;
-                forwardingTable[i].nextHop = i;
-                considered[i] = FALSE;
-            }
             else{
                 forwardingTable[i].cost = INFINITY;
                 forwardingTable[i].nextHop = INFINITY;
@@ -132,6 +126,7 @@ implementation{
 
         // Unnconsidered = forwardingTable
         while(TRUE){
+
             bool consider = FALSE; 
             uint8_t w = 0;
             uint8_t lowestCost = INFINITY;
