@@ -135,7 +135,6 @@ implementation{
 
    event void CommandHandler.Dijkstra(){
       call LinkStateRouting.Dijkstra();
-      call LinkStateRouting.listRouteTable();
    }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
