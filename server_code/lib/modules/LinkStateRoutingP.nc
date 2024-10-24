@@ -301,16 +301,4 @@ implementation{
         }
         dbg_clear(ROUTING_CHANNEL, "===========================\n");
     }
-
-    // Helper function for Node Q
-    bool allConsidered(bool *considered){
-        int i;
-
-        for(i = 0; i < MAX_NEIGHBORS; i++){
-            if(!considered[i]){
-                return FALSE;
-            }
-        }
-        return TRUE;
-    }
 }
