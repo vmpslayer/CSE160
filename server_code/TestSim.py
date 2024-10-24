@@ -150,7 +150,7 @@ class TestSim:
 def main():
     s = TestSim()
     s.runTime(10)
-    s.loadTopo("long_line.topo")
+    s.loadTopo("example.topo")
     s.loadNoise("no_noise.txt")
     s.bootAll()
     # s.addChannel(s.COMMAND_CHANNEL)
@@ -163,11 +163,11 @@ def main():
     
     for i in range(20):
         s.linkStateDMP(i)
-        s.runTime(10)
+        s.runTime(50)
     
-    for i in range(10):
-        s.linkStateDMP(i)
-        s.runTime(10)
+    # for i in range(10):
+    #     s.linkStateDMP(i)
+    #     s.runTime(0)
 
     s.runTime(10)
     
@@ -181,7 +181,8 @@ def main():
     s.ping(1, 5, "Hi!!!!!!!!!")
     s.runTime(10)
     # s.flood(1, 3, "Flood packet")
-    s.runTime(50)
+    s.ping(9, 2, "Holy Guacamole it works")
+    # s.runTime(50)
         
     # s.runTime(1000)
 

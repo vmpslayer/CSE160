@@ -72,7 +72,7 @@ implementation{
             if(nodeTable[j].address != 0){
                 neighbors[i] = j;
                 i++;
-                // dbg(ROUTING_CHANNEL,"i: %d, j: %d ", i, j);
+                // dbg(ROUTING_CHANNEL,"Node %i: neighbors[%d]: %d \n", TOS_NODE_ID, i, j);
             }
             j++;
         }
@@ -100,17 +100,28 @@ implementation{
         linkTable[flood_pack.floodSource].address = flood_pack.floodSource;
         // Fill the linkTable for floodSource address entry with its neighbors
         
-        // dbg(ROUTING_CHANNEL, "source: %d, neighbors: ", linkTable[flood_pack.floodSource].address);
-        for(i = 0; i < MAX_NEIGHBORS; i++){
+        for(i = 0; i < MAX_NEIGHBORS + 2; i++){
             if(flood_pack.payload[i] != 0){
                 linkTable[flood_pack.floodSource].neighbors[i] = flood_pack.payload[i];
             }
             else{
                 break;
             }
-            // dbg_clear(ROUTING_CHANNEL, "%d ", linkTable[flood_pack.floodSource].neighbors[i]);
-            // dbg_clear(ROUTING_CHANNEL, "\n");
         }
+        
+        // if(TOS_NODE_ID == 19){
+        //     dbg(GENERAL_CHANNEL, "Node 19 Receives from Node %d", flood_pack.floodSource);
+        //     for(i = 0; i < MAX_NEIGHBORS; i++){
+        //         dbg(GENERAL_CHANNEL, "%d \n", flood_pack.payload[i]);
+
+        //         // for(j = 0; j < MAX_NEIGHBORS; j++){
+        //         //     if(linkTable[i].neighbors[j] != 0){
+        //         //         dbg_clear(GENERAL_CHANNEL, "%d \n", linkTable[i].neighbors[j]);
+        //         //     }
+        //         // }
+        //         dbg_clear(GENERAL_CHANNEL, "\n");
+        //     }
+        // }
 
         // Flood the neighbor information to the rest of the network
         call Flooding.receiveHandler(myMsg);
@@ -135,6 +146,7 @@ implementation{
 
             if(linkTable[i].address == TOS_NODE_ID){
                 forwardingTable[i].cost = 0;
+                forwardingTable[i].altCost = 0;
                 considered[i] = TRUE;
             }
             // Since this loop is iterating through all addresses in linkTable
@@ -144,11 +156,15 @@ implementation{
                 // dbg(ROUTING_CHANNEL, "Node %i has a neighbor at %i", TOS_NODE_ID, i);
                 forwardingTable[i].cost = 1;
                 forwardingTable[i].nextHop = i;
+                forwardingTable[i].altNextHop = i;
+                forwardingTable[i].altCost = 1;
                 considered[i] = FALSE;
             }
             else{
                 forwardingTable[i].cost = INFINITY;
                 forwardingTable[i].nextHop = INFINITY;
+                forwardingTable[i].altNextHop = INFINITY;
+                forwardingTable[i].altCost = INFINITY;
                 considered[i] = FALSE;
             }
         }
@@ -172,13 +188,13 @@ implementation{
             }
 
             // Print all unconsidered
-            dbg(ROUTING_CHANNEL, "ALL UNCONSIDERED NODES: ");
-            for(i = 1; i < MAX_NEIGHBORS; i++){
-                if(!considered[i]){
-                    dbg_clear(ROUTING_CHANNEL, "%d ", i);
-                }
-            }
-            dbg_clear(ROUTING_CHANNEL, "\n");
+            // dbg(ROUTING_CHANNEL, "ALL UNCONSIDERED NODES: ");
+            // for(i = 1; i < MAX_NEIGHBORS; i++){
+            //     if(!considered[i]){
+            //         dbg_clear(ROUTING_CHANNEL, "%d ", i);
+            //     }
+            // }
+            // dbg_clear(ROUTING_CHANNEL, "\n");
 
             // Find C(w) is the smallest in unconsidered
             dbg(ROUTING_CHANNEL, "SEARCHING FOR SHORTEST PATH\n");
@@ -193,19 +209,29 @@ implementation{
             // dbg(ROUTING_CHANNEL, "The lowestCost is %i from i = %i\n", lowestCost, w);
             
             considered[w] = TRUE;
-            dbg(ROUTING_CHANNEL, "NODE %d HAS BEEN CONSIDERED\n", w);
+            // dbg(ROUTING_CHANNEL, "NODE %d HAS BEEN CONSIDERED\n", w);
 
-            dbg(ROUTING_CHANNEL, "Node %d has neighbors: ", w);
+            // dbg(ROUTING_CHANNEL, "Node %d has neighbors: ", w);
             for(i = 0; i < MAX_NEIGHBORS; i++){
-                dbg_clear(ROUTING_CHANNEL, "%d ", linkTable[w].neighbors[i]);
+                // dbg_clear(ROUTING_CHANNEL, "%d ", linkTable[w].neighbors[i]);
                 // Set the cost of w's neighbors
                 if(linkTable[w].neighbors[i] != 0 && forwardingTable[linkTable[w].neighbors[i]].cost > (forwardingTable[w].cost + 1)){
                     // dbg_clear(ROUTING_CHANNEL, "%d ", linkTable[w].neighbors[i]);
                     forwardingTable[linkTable[w].neighbors[i]].cost = forwardingTable[w].cost + 1;
                     forwardingTable[linkTable[w].neighbors[i]].nextHop = forwardingTable[w].nextHop;
                 }
+                // Alternate:
+                if(forwardingTable[linkTable[w].neighbors[i]].cost > forwardingTable[w].cost + 1){
+                    forwardingTable[linkTable[w].neighbors[i]].altCost = forwardingTable[w].cost + 1;
+                    forwardingTable[linkTable[w].neighbors[i]].altNextHop = forwardingTable[w+1].nextHop;
+                }
+                else if(forwardingTable[linkTable[w].neighbors[i]].cost == forwardingTable[w].cost + 1){
+                    forwardingTable[linkTable[w].neighbors[i]].altCost = forwardingTable[w].cost + 1;
+                    forwardingTable[linkTable[w].neighbors[i]].altNextHop = forwardingTable[w].nextHop;
+                    // dbg_clear(GENERAL_CHANNEL, "w: %d \n linkTable[w].neighbors[i]: %d \n linkTable[w + 1].neighbors[i]: %d \n linkTable[w + 1].neighbors[i + 1]: %d \n", w, linkTable[w].neighbors[i], linkTable[w + 1].neighbors[i], linkTable[w + 1].neighbors[i + 1]);
+                }
             }
-            dbg_clear(ROUTING_CHANNEL, "\n");
+            // dbg_clear(ROUTING_CHANNEL, "\n");
 
             // Just to break the loop
             if(lowestCost == 255){
@@ -214,11 +240,6 @@ implementation{
         }
         call LinkStateRouting.listRouteTable();
         call LinkStateRouting.listLinkStateTable();
-
-        // for(i = 0; i < MAX_NEIGHBORS; i++){
-        //     dbg(ROUTING_CHANNEL, "Forwarding to this neighbor: %d \n", forwardingTable[i].nextHop);
-        //     call CommandHandler.ping(forwardingTable[i].nextHop);
-        // }
     }
 
     // 4. Forwarding: to send packets using routing table for next hops
@@ -237,7 +258,9 @@ implementation{
             return SUCCESS;
         }
         else{
-            dbg(ROUTING_CHANNEL, "ERROR: Forwarding (using ping) with Link State Routing Complete \n");
+            dbg(ROUTING_CHANNEL, "ERROR: Forwarding (using ping) with Link State Routing to Node %d has failed. Retrying with alternate path...\n", hoptoDest);
+            hoptoDest = forwardingTable[dest].altNextHop;
+            call Sender.send(pkt, hoptoDest);
             return FAIL;
         }
     }
@@ -246,12 +269,12 @@ implementation{
     command void LinkStateRouting.listRouteTable(){
         // List forwarding table for certain node
         uint8_t i;
-        dbg_clear(ROUTING_CHANNEL, "===========================\nRouting Table for Node %d\n", TOS_NODE_ID);
-        dbg_clear(ROUTING_CHANNEL, "Dest    Cost    NextHop\n");
+        dbg_clear(ROUTING_CHANNEL, "========================\nRouting Table for Node %d\n", TOS_NODE_ID);
+        dbg_clear(ROUTING_CHANNEL, "Dest    Cost    NextHop    AltCost    AltNextHop\n");
         for(i = 1; i < MAX_NEIGHBORS; i++){
-            dbg_clear(ROUTING_CHANNEL, "%d        %d        %d \n", i, forwardingTable[i].cost, forwardingTable[i].nextHop);
+            dbg_clear(ROUTING_CHANNEL, "%d        %d        %d          %d            %d \n", i, forwardingTable[i].cost, forwardingTable[i].nextHop, forwardingTable[i].altCost, forwardingTable[i].altNextHop);
         }
-        dbg_clear(ROUTING_CHANNEL, "===========================\n");
+        dbg_clear(ROUTING_CHANNEL, "========================\n");
     }
 
     // Testing purposes
