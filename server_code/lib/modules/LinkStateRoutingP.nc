@@ -237,7 +237,7 @@ implementation{
             if(lowestCost == 255){
                 break;
             }
-            dbg_clear(ROUTING_CHANNEL, "\n");
+            // dbg_clear(ROUTING_CHANNEL, "\n");
 
             // Just to break the loop
             if(lowestCost == 255){
