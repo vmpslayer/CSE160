@@ -113,6 +113,7 @@ implementation{
         if(callLinkState == TRUE){
             signal NeighborDiscovery.updateListener(nodeTable, sizeof(Neighbor) * MAX_NEIGHBORS);
         }
+        callLinkState = FALSE;
     }
 
     // 2. We listen for the Neighbor Discovery packet
@@ -136,7 +137,6 @@ implementation{
         else if(msg.dest == TOS_NODE_ID){
             dbg_clear(NEIGHBOR_CHANNEL, "Initial Node has received reply : %d", sqNumber);
             call NeighborDiscovery.addNeighbor(msg.src);
-            callLinkState = TRUE;
         }
         else{
             return FAIL;
@@ -152,6 +152,7 @@ implementation{
         }
         nodeTable[srcNode].qol = (float)(nodeTable[srcNode].pktReceived) / (float)(nodeTable[srcNode].pktSent);
         // nodeTable[srcNode].qol = weight * link + (weight * nodeTable[srcNode].qol);
+        callLinkState = TRUE;
     }
 
     // 2.5. When we receive a packet, we add each neighbor as a... neighbor.

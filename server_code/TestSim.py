@@ -160,23 +160,14 @@ def main():
     s.addChannel(s.ROUTING_CHANNEL)
 
     s.runTime(20)
-    # s.neighborDMP(3)
-    # s.runTime(30)
-    # s.ping(1, 2, "Hello, World")
-    # s.runTime(10)
-    # s.ping(1, 3, "Hi!")
-    # s.runTime(10)
-    # # s.flood(1, 3, "Flood packet")
-    # s.runTime(50)
     
     for i in range(20):
         s.linkStateDMP(i)
-        s.runTime(10)
+        s.runTime(50)
     
-    s.linkStateDMP(1)
     # for i in range(10):
     #     s.linkStateDMP(i)
-    #     s.runTime(10)
+    #     s.runTime(0)
 
     s.runTime(10)
 
@@ -187,7 +178,16 @@ def main():
         s.dijkstra(i)
         s.runTime(100)
         
-    s.runTime(1000)
+    s.runTime(30)
+    s.ping(1, 2, "Howdy Neighbor!")
+    s.runTime(10)
+    s.ping(1, 5, "Hi!!!!!!!!!")
+    s.runTime(10)
+    # s.flood(1, 3, "Flood packet")
+    s.ping(9, 2, "Holy Guacamole it works")
+    # s.runTime(50)
+        
+    # s.runTime(1000)
 
     # s.runTime(200)
     # s.flood(2, 18, "MY BALLS")
