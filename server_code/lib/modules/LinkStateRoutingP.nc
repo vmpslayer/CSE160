@@ -197,7 +197,7 @@ implementation{
             // dbg_clear(ROUTING_CHANNEL, "\n");
 
             // Find C(w) is the smallest in unconsidered
-            dbg(ROUTING_CHANNEL, "SEARCHING FOR SHORTEST PATH\n");
+            // dbg(ROUTING_CHANNEL, "SEARCHING FOR SHORTEST PATH\n");
             for(i = 1; i < MAX_NEIGHBORS; i++){
                 if(!considered[i] && forwardingTable[i].cost < lowestCost){
                     // dbg(ROUTING_CHANNEL, "Node %i is %i away from Node %i\n", i, forwardingTable[i].cost, TOS_NODE_ID);
@@ -244,8 +244,8 @@ implementation{
                 break;
             }
         }
-        call LinkStateRouting.listRouteTable();
         call LinkStateRouting.listLinkStateTable();
+        call LinkStateRouting.listRouteTable();
     }
 
     // 4. Forwarding: to send packets using routing table for next hops
