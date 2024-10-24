@@ -237,6 +237,12 @@ implementation{
             if(lowestCost == 255){
                 break;
             }
+            dbg_clear(ROUTING_CHANNEL, "\n");
+
+            // Just to break the loop
+            if(lowestCost == 255){
+                break;
+            }
         }
         call LinkStateRouting.listRouteTable();
         call LinkStateRouting.listLinkStateTable();
@@ -280,17 +286,31 @@ implementation{
     // Testing purposes
     command void LinkStateRouting.listLinkStateTable(){
         int i, j;
-        dbg_clear(ROUTING_CHANNEL, "========================\nLink State Table for Node %d\n", TOS_NODE_ID);
+        dbg_clear(ROUTING_CHANNEL, "===========================\nLink State Table for Node %d\n", TOS_NODE_ID);
         dbg_clear(ROUTING_CHANNEL, "Node    Neighbors\n");
         for(i = 1; i < MAX_NEIGHBORS; i++){
-            dbg_clear(ROUTING_CHANNEL, "%d       ", linkTable[i].address);
-            for(j = 0; j < MAX_NEIGHBORS; j++){
-                if(linkTable[i].neighbors[j] != 0 && linkTable[i].neighbors[j] < MAX_NEIGHBORS){
-                    dbg_clear(ROUTING_CHANNEL, "%d ", linkTable[i].neighbors[j]);
+            if(linkTable[i].address != 0){
+                dbg_clear(ROUTING_CHANNEL, "%d       ", linkTable[i].address);
+                for(j = 0; j < MAX_NEIGHBORS; j++){
+                    if(linkTable[i].neighbors[j] != 0 && linkTable[i].neighbors[j] < MAX_NEIGHBORS){
+                        dbg_clear(ROUTING_CHANNEL, "%d ", linkTable[i].neighbors[j]);
+                    }
                 }
+                dbg_clear(ROUTING_CHANNEL, "\n");
             }
-            dbg_clear(ROUTING_CHANNEL, "\n");
         }
-        dbg_clear(ROUTING_CHANNEL, "========================\n");
+        dbg_clear(ROUTING_CHANNEL, "===========================\n");
+    }
+
+    // Helper function for Node Q
+    bool allConsidered(bool *considered){
+        int i;
+
+        for(i = 0; i < MAX_NEIGHBORS; i++){
+            if(!considered[i]){
+                return FALSE;
+            }
+        }
+        return TRUE;
     }
 }

@@ -170,6 +170,9 @@ def main():
     #     s.runTime(0)
 
     s.runTime(10)
+
+    # s.dijkstra(1)
+    s.runTime(100)
     
     for i in range(20):    
         s.dijkstra(i)
