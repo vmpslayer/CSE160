@@ -31,6 +31,8 @@ module Node{
    uses interface NeighborDiscovery;
 
    uses interface LinkStateRouting;
+
+   uses interface Transport;
 }
 
 implementation{
@@ -69,6 +71,10 @@ implementation{
             // Link State protocol
             case 2:
                call LinkStateRouting.receiveHandler(*myMsg);
+               break;
+            // TCP protocol
+            case 4:
+               // call Transport.receiveHandler(*myMsg);
                break;
             // Flood protocol
             case 6:

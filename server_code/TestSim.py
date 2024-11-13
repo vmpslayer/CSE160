@@ -14,6 +14,7 @@ class TestSim:
     CMD_NEIGHBOR_DUMP = 1
     CMD_LINK_STATE_DUMP = 2
     CMD_ROUTE_DUMP = 3
+    CMD_TRANSPORT = 4
     CMD_FLOOD = 11
     CMD_DIJKSTRA = 12
 
@@ -157,34 +158,35 @@ def main():
     # s.addChannel(s.GENERAL_CHANNEL)
     # s.addChannel(s.NEIGHBOR_CHANNEL)
     # s.addChannel(s.FLOODING_CHANNEL)
-    s.addChannel(s.ROUTING_CHANNEL)
+    # s.addChannel(s.ROUTING_CHANNEL)
+    s.addChannel(s.TRANSPORT_CHANNEL)
 
     s.runTime(20)
     
-    for i in range(20):
-        s.linkStateDMP(i)
-        s.runTime(50)
+    # for i in range(20):
+    #     s.linkStateDMP(i)
+    #     s.runTime(50)
     
     # for i in range(10):
     #     s.linkStateDMP(i)
     #     s.runTime(0)
 
-    s.runTime(10)
+    # s.runTime(10)
 
     # s.dijkstra(1)
-    s.runTime(100)
+    # s.runTime(100)
     
-    for i in range(20):    
-        s.dijkstra(i)
-        s.runTime(100)
+    # for i in range(20):    
+    #     s.dijkstra(i)
+    #     s.runTime(100)
         
-    s.runTime(30)
-    s.ping(1, 2, "Howdy Neighbor!")
-    s.runTime(10)
-    s.ping(1, 5, "Hi!!!!!!!!!")
-    s.runTime(10)
+    # s.runTime(30)
+    # s.ping(1, 2, "Howdy Neighbor!")
+    # s.runTime(10)
+    # s.ping(1, 5, "Hi!!!!!!!!!")
+    # s.runTime(10)
     # s.flood(1, 3, "Flood packet")
-    s.ping(9, 2, "Holy Guacamole it works")
+    # s.ping(9, 2, "Holy Guacamole it works")
     # s.runTime(50)
         
     # s.runTime(1000)
