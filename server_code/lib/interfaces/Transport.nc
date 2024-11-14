@@ -17,6 +17,7 @@
  */
 
 interface Transport{
+   command void initTransport();
    /**
     * Get a socket if there is one available.
     * @Side Client/Server

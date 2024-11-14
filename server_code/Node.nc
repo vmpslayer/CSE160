@@ -119,9 +119,17 @@ implementation{
 
    event void CommandHandler.printDistanceVector(){}
 
-   event void CommandHandler.setTestServer(){}
+   event void CommandHandler.setTestServer(nx_uint8_t srcPort){
+      if(call Transport.testServer(srcPort) == SUCCESS){
+         dbg(TRANSPORT_CHANNEL, "Initialized Server %i:%i\n", TOS_NODE_ID, srcPort);
+      }
+   }
 
-   event void CommandHandler.setTestClient(){}
+   event void CommandHandler.setTestClient(nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
+      if(call Transport.testClient(srcPort, dest, destPort) == SUCCESS){
+         dbg(TRANSPORT_CHANNEL, "Initialized Client, %i:%i attempting connection with %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
+      }
+   }
 
    event void CommandHandler.setAppServer(){}
 

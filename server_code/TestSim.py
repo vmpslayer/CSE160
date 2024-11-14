@@ -14,7 +14,8 @@ class TestSim:
     CMD_NEIGHBOR_DUMP = 1
     CMD_LINK_STATE_DUMP = 2
     CMD_ROUTE_DUMP = 3
-    CMD_TRANSPORT = 4
+    CMD_TEST_CLIENT = 4
+    CMD_TEST_SERVER = 5
     CMD_FLOOD = 11
     CMD_DIJKSTRA = 12
 
@@ -144,7 +145,13 @@ class TestSim:
         
     def dijkstra(self, dest):
         self.sendCMD(self.CMD_DIJKSTRA, dest, "dijkstra command")
-
+        
+    def testClient(self, src, srcPort, dest, destPort):
+        self.sendCMD(self.CMD_TEST_CLIENT, src, "{0}{1}{2}".format(chr(srcPort),chr(dest),chr(destPort)))
+    
+    def testServer(self, src, srcPort):
+        self.sendCMD(self.CMD_TEST_SERVER, src, "{0}".format(chr(srcPort)))
+        
     # def cmdRouteDMP(destination):
 
 
@@ -162,6 +169,12 @@ def main():
     s.addChannel(s.TRANSPORT_CHANNEL)
 
     s.runTime(20)
+    
+    s.testServer(1, 80)
+    s.runTime(50)
+    s.testClient(2, 80, 1, 80)
+    
+    s.runTime(100)
     
     # for i in range(20):
     #     s.linkStateDMP(i)
