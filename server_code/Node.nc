@@ -126,7 +126,7 @@ implementation{
    }
 
    event void CommandHandler.setTestClient(nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
-      if(call Transport.testClient(srcPort, dest, destPort) == SUCCESS){
+      if(call Transport.testClient(TOS_NODE_ID, srcPort, dest, destPort) == SUCCESS){
          dbg(TRANSPORT_CHANNEL, "Initialized Client, %i:%i attempting connection with %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
       }
    }

@@ -57,12 +57,13 @@ implementation{
 
     }
     command error_t Transport.testServer(nx_uint8_t srcPort){
-        if(connections[TOS_NODE_ID].srcPort == CLOSED){
-            connections[TOS_NODE_ID].
-        }
+        // if(connections[TOS_NODE_ID].srcPort == CLOSED){
+        //     connections[TOS_NODE_ID].
+        // }
+        return SUCCESS;
     }
-    command error_t Transport.testClient(nx_uint8_t){
-
+    command error_t Transport.testClient(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
+        return SUCCESS;
     }
     void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
         Package->src = src;
