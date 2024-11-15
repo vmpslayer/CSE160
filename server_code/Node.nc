@@ -120,7 +120,7 @@ implementation{
    event void CommandHandler.printDistanceVector(){}
 
    event void CommandHandler.setTestServer(nx_uint8_t srcPort){
-      if(call Transport.testServer(srcPort) == SUCCESS){
+      if(call Transport.testServer(TOS_NODE_ID, srcPort) == SUCCESS){
          dbg(TRANSPORT_CHANNEL, "Initialized Server %i:%i\n", TOS_NODE_ID, srcPort);
       }
    }

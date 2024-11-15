@@ -17,7 +17,7 @@
  */
 
 interface Transport{
-   command void initTransport();
+   command error_t initTransport();
    /**
     * Get a socket if there is one available.
     * @Side Client/Server
@@ -146,6 +146,6 @@ interface Transport{
     *   to listen else FAIL.
     */
    command error_t listen(socket_t fd);
-   command error_t testServer(nx_uint8_t srcPort);
+   command error_t testServer(nx_uint8_t src, nx_uint8_t srcPort);
    command error_t testClient(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort);
 }

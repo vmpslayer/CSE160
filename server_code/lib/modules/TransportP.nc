@@ -9,23 +9,35 @@ module TransportP{
 implementation{
     socket_store_t connections[MAX_NUM_OF_SOCKETS];
 
-    command void Transport.initTransport(){
+    command error_t Transport.initTransport(){
         call transportTimer.startOneShot(1000);
+        return SUCCESS;
     }
 
     event void transportTimer.fired(){
-        dbg(TRANSPORT_CHANNEL, "SUCCESS: Transport Started");
+        socket_t socket;
+
+        socket = call Transport.socket();
+        dbg(TRANSPORT_CHANNEL, "SUCCESS: Transport Started\n");
     }
 
     command socket_t Transport.socket(){
-        // uint8_t i;
-        // for(i = 0; i < MAX_NUM_OF_SOCKETS; i++){
-        //     connections[i].state == CLOSED;
-        // }
-        // return 
+        // Get a socket if there is one available
+        // Look for closed socket
+        // Then, return that socket
+        uint8_t i;
+
+        for(i = 0; i < MAX_NUM_OF_SOCKETS; i++){
+            if(connections[i].state == CLOSED){
+                return i;
+            }
+        }
+        return NULL;
     }
     command error_t Transport.bind(socket_t fd, socket_addr_t *addr){
+        // Bind socket with address
         if(connections[fd].state == CLOSED){
+            // SUCCESS if you can bind to socket
             connections[fd].src = addr->port;
             connections[fd].dest = *addr;
             return SUCCESS;
@@ -33,7 +45,9 @@ implementation{
         return FAIL;
     }
     command socket_t Transport.accept(socket_t fd){
-
+        // if(connections[fd].state == LISTEN){
+            
+        // }
     }
     command uint16_t Transport.write(socket_t fd, uint8_t *buff, uint16_t bufflen){
 
@@ -48,18 +62,28 @@ implementation{
 
     }
     command error_t Transport.close(socket_t fd){
-
+        if(connections[fd].state == ESTABLISHED){
+            connections[fd].state = CLOSED;
+            return SUCCESS;
+        }
+        return FAIL;
     }
     command error_t Transport.release(socket_t fd){
 
     }
     command error_t Transport.listen(socket_t fd){
-
+        // Connection, establish it on a random socket
+        // Traffic from one port to
+        if(connections[fd].state == CLOSED){
+            connections[fd].state = LISTEN;
+            return SUCCESS;
+        }
+        return FAIL;
     }
-    command error_t Transport.testServer(nx_uint8_t srcPort){
-        // if(connections[TOS_NODE_ID].srcPort == CLOSED){
-        //     connections[TOS_NODE_ID].
-        // }
+    command error_t Transport.testServer(nx_uint8_t src, nx_uint8_t srcPort){
+        if(call Transport.initTransport() == SUCCESS){
+            call Transport.bind();
+        }
         return SUCCESS;
     }
     command error_t Transport.testClient(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
