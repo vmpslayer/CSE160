@@ -5,9 +5,16 @@ module TransportP{
     provides interface Transport;
 
     uses interface Timer<TMilli> as transportTimer;
+    uses interface LinkStateRouting;
 }
 implementation{
     socket_store_t connections[MAX_NUM_OF_SOCKETS];
+    Routing forwardingTable[MAX_NEIGHBORS];
+    pack pkt;
+
+    event void LinkStateRouting.updateListener(Routing* table, uint8_t length){
+        memcpy(forwardingTable, table, length * sizeof(Routing));
+    }
 
     command error_t Transport.initTransport(){
         call transportTimer.startOneShot(1000);
@@ -45,21 +52,48 @@ implementation{
         return FAIL;
     }
     command socket_t Transport.accept(socket_t fd){
-        // if(connections[fd].state == LISTEN){
-            
-        // }
+        uint8_t i;
+        if(connections[fd].state == LISTEN){
+            for(i = 0; i < MAX_NUM_OF_SOCKETS; i++){
+                if(connections[i].state == CLOSED){
+                    connections[i] = connections[fd];
+                    connections[i].state = ESTABLISHED;
+                    return i;
+                }
+            }
+        }
+        return NULL;
     }
     command uint16_t Transport.write(socket_t fd, uint8_t *buff, uint16_t bufflen){
-
+        // Change TTL (0) to a value
+        // makePack(&pkt, connections[fd].src, connections[fd].dest.port, 0, PROTOCOL_TCP, connections[fd].seq, buff, bufflen)
     }
     command error_t Transport.receive(pack* package){
+        uint8_t i = 0;
 
+        // for(int = 0; i < MAX_NUM_OF_SOCKETS; i++){
+        //     if(connections[i].state == LISTEN && connections[i].src == package->dest && connections[i].dest.port == package->src){
+                
+        //     }
+        // }
     }
     command uint16_t Transport.read(socket_t fd, uint8_t *buff, uint16_t bufflen){
 
     }
     command error_t Transport.connect(socket_t fd, socket_addr_t * addr){
+        if(connections[fd].state != CLOSED){
+            return FAIL;
+        }
 
+        TCP synPkt;
+        synPkt.srcPort = connections[fd].src;
+        synPkt.destPort = addr->port;
+        synPkt.seq = connections[fd].seq;
+        synPkt.ack = 0;
+        synPkt.flags = SYN;
+
+        // Change TTL (0) to a value
+        makePack(&pkt, connections[fd].src, addr->port, 0, PROTOCOL_TCP, connections[fd].seq, (uint8_t)*&syn, (sizeof(TCP)));
     }
     command error_t Transport.close(socket_t fd){
         if(connections[fd].state == ESTABLISHED){
@@ -69,7 +103,7 @@ implementation{
         return FAIL;
     }
     command error_t Transport.release(socket_t fd){
-
+        
     }
     command error_t Transport.listen(socket_t fd){
         // Connection, establish it on a random socket

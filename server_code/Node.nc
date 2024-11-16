@@ -74,7 +74,7 @@ implementation{
                break;
             // TCP protocol
             case 4:
-               // call Transport.receiveHandler(*myMsg);
+               call Transport.receive(myMsg);
                break;
             // Flood protocol
             case 6:

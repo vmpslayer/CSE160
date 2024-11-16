@@ -8,4 +8,5 @@ interface LinkStateRouting{
     command error_t forward(uint16_t dest, uint8_t *payload);
     command void listRouteTable();
     command void listLinkStateTable();
+    event void updateListener(Routing* table, uint8_t length);
 }

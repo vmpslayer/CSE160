@@ -244,6 +244,7 @@ implementation{
                 break;
             }
         }
+        signal LinkStateRouting.updateListener(forwardingTable, sizeof(Routing) * MAX_NEIGHBORS);
         call LinkStateRouting.listLinkStateTable();
         call LinkStateRouting.listRouteTable();
     }
