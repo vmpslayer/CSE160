@@ -7,4 +7,7 @@ implementation{
 
     components new TimerMilliC() as transportTimer;
     TransportP.transportTimer -> transportTimer;
+    
+    components LinkStateRoutingC as LinkStateRouting;
+    TransportP.LinkStateRouting -> LinkStateRouting;
 }

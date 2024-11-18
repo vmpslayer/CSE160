@@ -17,7 +17,10 @@ class TestSim:
     CMD_TEST_CLIENT = 4
     CMD_TEST_SERVER = 5
     CMD_FLOOD = 11
-    CMD_DIJKSTRA = 12
+    CMD_DIJKSTRA = 12    
+    CMD_LISTEN = 13
+    CMD_CLOSE_PORT = 14
+
 
     # CHANNELS - see includes/channels.h
     COMMAND_CHANNEL="command"
@@ -152,7 +155,11 @@ class TestSim:
     def testServer(self, src, srcPort):
         self.sendCMD(self.CMD_TEST_SERVER, src, "{0}".format(chr(srcPort)))
         
-    # def cmdRouteDMP(destination):
+    def listen(self, src, srcPort):
+        self.sendCMD(self.CMD_LISTEN, src, "{0}".format(chr(srcPort)))
+        
+    def closePort(self, src, srcPort):
+        self.sendCMD(self.CMD_CLOSE_PORT, src, "{0}".format(chr(srcPort)))
 
 
 def main():

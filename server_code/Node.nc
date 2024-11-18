@@ -15,6 +15,8 @@
 #include "includes/neighbor.h"
 #include "includes/flood.h"
 #include "includes/linkstate.h"
+#include "includes/TCP.h"
+#include "includes/protocol.h"
 
 module Node{
    uses interface Boot;
@@ -102,7 +104,7 @@ implementation{
       dbg(GENERAL_CHANNEL, "PING EVENT \n");
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       // call Sender.send(sendPackage, destination);
-      call LinkStateRouting.forward(destination, &payload);
+      call LinkStateRouting.forward(destination, sendPackage);
    }
    
    event void CommandHandler.printNeighbors(){}
@@ -123,11 +125,17 @@ implementation{
       if(call Transport.testServer(TOS_NODE_ID, srcPort) == SUCCESS){
          dbg(TRANSPORT_CHANNEL, "Initialized Server %i:%i\n", TOS_NODE_ID, srcPort);
       }
+      else{
+         dbg(TRANSPORT_CHANNEL, "Failed to Initialize Server %i:%i\n", TOS_NODE_ID, srcPort);
+      }
    }
 
    event void CommandHandler.setTestClient(nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
       if(call Transport.testClient(TOS_NODE_ID, srcPort, dest, destPort) == SUCCESS){
          dbg(TRANSPORT_CHANNEL, "Initialized Client, %i:%i attempting connection with %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
+      }
+      else{
+         dbg(TRANSPORT_CHANNEL, "Failed to Initialize Client %i:%i to server %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
       }
    }
 
@@ -151,8 +159,22 @@ implementation{
    event void CommandHandler.Dijkstra(){
       call LinkStateRouting.Dijkstra();
    }
+
+   event void CommandHandler.listen(nx_uint8_t src, nx_uint8_t srcPort){
+      if(call Transport.listen(srcPort) == SUCCESS){
+         dbg(TRANSPORT_CHANNEL, "Port %i is now listening", srcPort);
+      }
+      else{
+         dbg(TRANSPORT_CHANNEL, "Port %i FAILED to start listening", srcPort);
+      }
+   }
+   event void CommandHandler.closePort(nx_uint8_t src, nx_uint8_t srcPort){
+
+   }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
+
+   event void LinkStateRouting.updateListener(Routing* table, uint8_t length){}
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
       Package->src = src;

@@ -11,4 +11,6 @@ interface CommandHandler{
    event void setAppClient();
    event void flood(uint16_t destination, uint8_t *payload);
    event void Dijkstra();
+   event void listen(nx_uint8_t src, nx_uint8_t srcPort);
+   event void closePort(nx_uint8_t src, nx_uint8_t srcPort);
 }

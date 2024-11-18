@@ -5,7 +5,7 @@ interface LinkStateRouting{
     command error_t initLinkState();
     command void receiveHandler(pack myMsg);
     command error_t Dijkstra();
-    command error_t forward(uint16_t dest, uint8_t *payload);
+    command error_t forward(uint16_t dest, pack myMsg);
     command void listRouteTable();
     command void listLinkStateTable();
     event void updateListener(Routing* table, uint8_t length);

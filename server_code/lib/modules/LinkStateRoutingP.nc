@@ -250,15 +250,16 @@ implementation{
     }
 
     // 4. Forwarding: to send packets using routing table for next hops
-    command error_t LinkStateRouting.forward(uint16_t dest, uint8_t *payload){
+    command error_t LinkStateRouting.forward(uint16_t dest, pack myMsg){
         uint8_t hoptoDest = forwardingTable[dest].nextHop;
+        uint8_t* payload = myMsg.payload;
 
         if(dest == TOS_NODE_ID){
             dbg(ROUTING_CHANNEL, "SUCCESS: Packet was received at destination %d; Message: \n", dest, payload);
             return SUCCESS;
         }
 
-        makePack(&pkt, TOS_NODE_ID, dest, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+        makePack(&pkt, TOS_NODE_ID, dest, myMsg.TTL, myMsg.protocol, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
         dbg(ROUTING_CHANNEL, "SENDING: Sending packet to %d \n", dest);
         if(call Sender.send(pkt, dest) == SUCCESS){
             dbg(ROUTING_CHANNEL, "SUCCESS: Forwarding (using ping) with Link State Routing to Node %d \n", hoptoDest);
