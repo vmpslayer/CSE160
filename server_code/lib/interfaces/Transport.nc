@@ -17,7 +17,10 @@
  */
 
 interface Transport{
-   command error_t initTransport();
+   command error_t initTransportServer(nx_uint8_t src, nx_uint8_t srcPort);
+   // command error_t initTransportClient(nx_uint8_t dest, nx_uint8_t srcPort, nx_uint8_t destPort, uint16_t transfer);
+   command error_t initTransportClient(nx_uint8_t dest, nx_uint8_t srcPort, nx_uint8_t destPort);
+   command error_t clientClose(nx_uint8_t src, nx_uint8_t dest, nx_uint16_t srcPort, nx_uint16_t destPort);
    /**
     * Get a socket if there is one available.
     * @Side Client/Server
@@ -146,6 +149,4 @@ interface Transport{
     *   to listen else FAIL.
     */
    command error_t listen(socket_t fd);
-   command error_t testServer(nx_uint8_t src, nx_uint8_t srcPort);
-   command error_t testClient(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort);
 }

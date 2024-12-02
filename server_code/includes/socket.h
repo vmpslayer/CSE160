@@ -9,11 +9,20 @@ enum{
 };
 
 enum socket_state{
+    // Setup
     CLOSED,
     LISTEN,
     ESTABLISHED,
     SYN_SENT,
     SYN_RCVD,
+    // Teardown (initiator)
+    FIN_WAIT_1,
+    FIN_WAIT_2,
+    TIME_WAIT,
+    // Teardown (recipient)
+    CLOSE_WAIT,
+    LAST_ACK
+    // Both nodes: FIN_WAIT_1 + TIME_WAIT
 };
 
 

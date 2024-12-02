@@ -86,7 +86,7 @@ implementation{
                 break;
             case CMD_CLOSE_PORT:
                 dbg(COMMAND_CHANNEL, "Command Type: Close Port");
-                signal CommandHandler.closePort(buff[0], buff[1]);
+                signal CommandHandler.closePort(buff[0], buff[1], buff[2]);
                 break;
             default:
                 dbg(COMMAND_CHANNEL, "CMD_ERROR: \"%d\" does not match any known commands.\n", msg->id);

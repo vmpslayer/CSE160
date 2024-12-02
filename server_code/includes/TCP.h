@@ -5,7 +5,7 @@ enum flag_type{
     SYN,
     SYNACK,
     ACK,
-    FIN, 
+    FIN
 };
 
 typedef struct TCP{
@@ -14,7 +14,7 @@ typedef struct TCP{
     nx_uint32_t seq;
     nx_uint32_t ack;
     enum flag_type flags; // SYN, ACK, SYNACK, FIN (never carry payload data)
-    nx_uint16_t adwindow;
+    uint16_t adwindow;
 } TCP;
 
 #endif

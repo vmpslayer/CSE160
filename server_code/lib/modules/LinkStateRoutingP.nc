@@ -256,17 +256,20 @@ implementation{
 
         if(dest == TOS_NODE_ID){
             dbg(ROUTING_CHANNEL, "SUCCESS: Packet was received at destination %d; Message: \n", dest, payload);
+            dbg(TRANSPORT_CHANNEL, "SUCCESS: Packet was received at destination %d; Message: \n", dest, payload);
             return SUCCESS;
         }
 
-        makePack(&pkt, TOS_NODE_ID, dest, myMsg.TTL, myMsg.protocol, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
+        makePack(&pkt, myMsg.src, dest, myMsg.TTL, myMsg.protocol, myMsg.seq, payload, PACKET_MAX_PAYLOAD_SIZE);
         dbg(ROUTING_CHANNEL, "SENDING: Sending packet to %d \n", dest);
         if(call Sender.send(pkt, dest) == SUCCESS){
             dbg(ROUTING_CHANNEL, "SUCCESS: Forwarding (using ping) with Link State Routing to Node %d \n", hoptoDest);
+            // dbg(TRANSPORT_CHANNEL, "SUCCESS: Forwarding (using ping) with Link State Routing to Node %d \n", hoptoDest);
             return SUCCESS;
         }
         else{
             dbg(ROUTING_CHANNEL, "ERROR: Forwarding (using ping) with Link State Routing to Node %d has failed. Retrying with alternate path...\n", hoptoDest);
+            // dbg(TRANSPORT_CHANNEL, "ERROR: Forwarding (using ping) with Link State Routing to Node %d has failed. Retrying with alternate path...\n", hoptoDest);
             hoptoDest = forwardingTable[dest].altNextHop;
             call Sender.send(pkt, hoptoDest);
             return FAIL;
@@ -283,6 +286,7 @@ implementation{
             dbg_clear(ROUTING_CHANNEL, "%d        %d        %d          %d            %d \n", i, forwardingTable[i].cost, forwardingTable[i].nextHop, forwardingTable[i].altCost, forwardingTable[i].altNextHop);
         }
         dbg_clear(ROUTING_CHANNEL, "========================\n");
+        dbg_clear(TRANSPORT_CHANNEL, "ROUTING TABLE: Created for %i\n", TOS_NODE_ID);
     }
 
     // Testing purposes

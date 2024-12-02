@@ -12,5 +12,5 @@ interface CommandHandler{
    event void flood(uint16_t destination, uint8_t *payload);
    event void Dijkstra();
    event void listen(nx_uint8_t src, nx_uint8_t srcPort);
-   event void closePort(nx_uint8_t src, nx_uint8_t srcPort);
+   event void closePort(nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort);
 }

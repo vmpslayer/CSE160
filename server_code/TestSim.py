@@ -158,8 +158,8 @@ class TestSim:
     def listen(self, src, srcPort):
         self.sendCMD(self.CMD_LISTEN, src, "{0}".format(chr(srcPort)))
         
-    def closePort(self, src, srcPort):
-        self.sendCMD(self.CMD_CLOSE_PORT, src, "{0}".format(chr(srcPort)))
+    def closePort(self, src, srcPort, dest, destPort):
+        self.sendCMD(self.CMD_CLOSE_PORT, src, "{0}{1}{2}".format(chr(srcPort),chr(dest),chr(destPort)))
 
 
 def main():
@@ -177,15 +177,28 @@ def main():
 
     s.runTime(20)
     
+    
+    for i in range(20):
+        s.linkStateDMP(i)
+        s.runTime(25)
+    
+    for i in range(20):    
+        s.dijkstra(i)
+        s.runTime(25)    
+        
     s.testServer(1, 80)
-    s.runTime(50)
-    s.testClient(2, 80, 1, 80)
+    s.runTime(25)
+    s.testClient(2, 101, 1, 80)
+    s.runTime(25)
+    s.testClient(5, 102, 1, 80)
+    s.runTime(25)
+    # s.testClient(8, 103, 1, 80)
+    # s.runTime(25)
+    s.closePort(2, 101, 1, 80)
     
     s.runTime(100)
     
-    # for i in range(20):
-    #     s.linkStateDMP(i)
-    #     s.runTime(50)
+
     
     # for i in range(10):
     #     s.linkStateDMP(i)
@@ -196,9 +209,7 @@ def main():
     # s.dijkstra(1)
     # s.runTime(100)
     
-    # for i in range(20):    
-    #     s.dijkstra(i)
-    #     s.runTime(100)
+
         
     # s.runTime(30)
     # s.ping(1, 2, "Howdy Neighbor!")

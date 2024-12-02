@@ -122,7 +122,7 @@ implementation{
    event void CommandHandler.printDistanceVector(){}
 
    event void CommandHandler.setTestServer(nx_uint8_t srcPort){
-      if(call Transport.testServer(TOS_NODE_ID, srcPort) == SUCCESS){
+      if(call Transport.initTransportServer(TOS_NODE_ID, srcPort) == SUCCESS){
          dbg(TRANSPORT_CHANNEL, "Initialized Server %i:%i\n", TOS_NODE_ID, srcPort);
       }
       else{
@@ -131,7 +131,7 @@ implementation{
    }
 
    event void CommandHandler.setTestClient(nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
-      if(call Transport.testClient(TOS_NODE_ID, srcPort, dest, destPort) == SUCCESS){
+      if(call Transport.initTransportClient(dest, srcPort, destPort) == SUCCESS){
          dbg(TRANSPORT_CHANNEL, "Initialized Client, %i:%i attempting connection with %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
       }
       else{
@@ -168,8 +168,13 @@ implementation{
          dbg(TRANSPORT_CHANNEL, "Port %i FAILED to start listening", srcPort);
       }
    }
-   event void CommandHandler.closePort(nx_uint8_t src, nx_uint8_t srcPort){
-
+   event void CommandHandler.closePort(nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
+      if(call Transport.clientClose(TOS_NODE_ID, srcPort, dest, destPort) == SUCCESS){
+         dbg(TRANSPORT_CHANNEL, "Initialize Close Port %i:%i to %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
+      }
+      else{
+         dbg(TRANSPORT_CHANNEL, "Failed to Initialize Close Port %i:%i to %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
+      }
    }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
