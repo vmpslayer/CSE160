@@ -20,6 +20,7 @@ class TestSim:
     CMD_DIJKSTRA = 12    
     CMD_LISTEN = 13
     CMD_CLOSE_PORT = 14
+    CMD_WRITE = 15
 
 
     # CHANNELS - see includes/channels.h
@@ -160,6 +161,9 @@ class TestSim:
         
     def closePort(self, src, srcPort, dest, destPort):
         self.sendCMD(self.CMD_CLOSE_PORT, src, "{0}{1}{2}".format(chr(srcPort),chr(dest),chr(destPort)))
+        
+    def write(self, src, srcPort, dest, destPort, msg):
+        self.sendCMD(self.CMD_WRITE, src, "{0}{1}{2}{3}".format(chr(srcPort),chr(dest),chr(destPort),msg))
 
 
 def main():
@@ -189,14 +193,19 @@ def main():
     s.testServer(1, 80)
     s.runTime(25)
     s.testClient(2, 101, 1, 80)
-    s.runTime(25)
+    s.runTime(50)    
+    s.write(2, 101, 1, 80, "hi there!")
+    s.runTime(50)   
+    s.closePort(2, 101, 1, 80)
+    s.runTime(50)
+
     s.testClient(5, 102, 1, 80)
     s.runTime(25)
     # s.testClient(8, 103, 1, 80)
     # s.runTime(25)
-    s.closePort(2, 101, 1, 80)
+    # s.closePort(2, 101, 1, 80)
     
-    s.runTime(100)
+    s.runTime(1000)
     
 
     

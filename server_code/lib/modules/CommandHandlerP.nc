@@ -85,9 +85,12 @@ implementation{
                 signal CommandHandler.listen(buff[0], buff[1]);
                 break;
             case CMD_CLOSE_PORT:
-                dbg(COMMAND_CHANNEL, "Command Type: Close Port");
+                dbg(COMMAND_CHANNEL, "Command Type: Close Port\n");
                 signal CommandHandler.closePort(buff[0], buff[1], buff[2]);
                 break;
+            case CMD_WRITE:
+                dbg(COMMAND_CHANNEL, "Command Type: Write\n");
+                signal CommandHandler.write(buff[0],buff[1],buff[2],buff[3]);
             default:
                 dbg(COMMAND_CHANNEL, "CMD_ERROR: \"%d\" does not match any known commands.\n", msg->id);
                 break;

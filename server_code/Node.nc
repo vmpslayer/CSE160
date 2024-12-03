@@ -176,6 +176,11 @@ implementation{
          dbg(TRANSPORT_CHANNEL, "Failed to Initialize Close Port %i:%i to %i:%i\n", TOS_NODE_ID, srcPort, dest, destPort);
       }
    }
+
+   event void CommandHandler.write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort, uint16_t message){
+      dbg(TRANSPORT_CHANNEL, "Writing message to %i:%i from %i:%i\n", dest, destPort, TOS_NODE_ID, srcPort);
+      call Transport.writeMsg(TOS_NODE_ID, srcPort, dest, destPort, message);
+   }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
 

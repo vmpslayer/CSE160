@@ -8,11 +8,21 @@ implementation{
     // components new QueueC(socket_t*, 10) as socketQueue;
     // TransportP.socketQueue -> socketQueue;
 
-    components new QueueC(socket_t*, 10) as socketConnectionQueue;
+    // Sockets trying to connect
+    components new QueueC(socket_t, 10) as socketConnectionQueue;
     TransportP.socketConnectionQueue -> socketConnectionQueue;
 
-    components new QueueC(socket_t*, 10) as socketDisconnectionQueue;
+    // Sockets trying to transmit data
+    components new QueueC(socket_t, 10) as socketTransmitQueue;
+    TransportP.socketTransmitQueue -> socketTransmitQueue;
+
+    // Sockets trying to disconnect
+    components new QueueC(socket_t, 10) as socketDisconnectionQueue;
     TransportP.socketDisconnectionQueue ->socketDisconnectionQueue;
+
+    // Sockets trying to retry
+    components new QueueC(socket_t, 10) as socketRetryQueue;
+    TransportP.socketRetryQueue ->socketRetryQueue;
 
     // components new TimerMilliC() as transportTimer;
     // TransportP.transportTimer -> transportTimer;
@@ -22,13 +32,14 @@ implementation{
     TransportP.attemptConnectionTimer -> attemptConnectionTimer;
 
     // Writing to a socket
-    components new TimerMilliC() as clientWriteTimer;
-    TransportP.clientWriteTimer -> clientWriteTimer;
+    components new TimerMilliC() as transmitTimer;
+    TransportP.transmitTimer -> transmitTimer;
 
     // Disconnecting from a socket
     components new TimerMilliC() as disconnectTimer;
     TransportP.disconnectTimer -> disconnectTimer;
     
+    // Used for forwarding
     components LinkStateRoutingC as LinkStateRouting;
     TransportP.LinkStateRouting -> LinkStateRouting;
 }

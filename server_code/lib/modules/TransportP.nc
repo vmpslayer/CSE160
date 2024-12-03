@@ -6,11 +6,13 @@
 module TransportP{
     provides interface Transport;
 
-    uses interface Queue<socket_t*> as socketConnectionQueue; 
-    uses interface Queue<socket_t*> as socketDisconnectionQueue; 
+    uses interface Queue<socket_t> as socketConnectionQueue; 
+    uses interface Queue<socket_t> as socketTransmitQueue;
+    uses interface Queue<socket_t> as socketDisconnectionQueue; 
+    uses interface Queue<socket_t> as socketRetryQueue;
 
     uses interface Timer<TMilli> as attemptConnectionTimer;
-    uses interface Timer<TMilli> as clientWriteTimer;
+    uses interface Timer<TMilli> as transmitTimer;
     uses interface Timer<TMilli> as disconnectTimer;
 
     uses interface LinkStateRouting;
@@ -18,6 +20,7 @@ module TransportP{
 implementation{
     socket_store_t connections[MAX_NUM_OF_SOCKETS];
     socket_t socket;
+    // uint8_t windowSize = 5;
     uint8_t retryCount = 0;
     uint16_t seqNum[MAX_NUM_OF_SOCKETS];
     Routing forwardingTable[MAX_NEIGHBORS];
@@ -35,6 +38,10 @@ implementation{
     event void LinkStateRouting.updateListener(Routing* table, uint8_t length){
         memcpy(forwardingTable, table, length * sizeof(Routing));
     }
+
+    // #####################################################################################
+    // Start Server
+    // #####################################################################################
 
     command error_t Transport.initTransportServer(nx_uint8_t src, nx_uint8_t srcPort){
         socket_addr_t addr;
@@ -86,6 +93,10 @@ implementation{
         call attemptConnectionTimer.startOneShot(1000);
     }
 
+    // #####################################################################################
+    // Start Client
+    // #####################################################################################
+
     // command error_t Transport.initTransportClient(nx_uint8_t dest, nx_uint8_t srcPort, nx_uint8_t destPort, uint16_t transfer)
     command error_t Transport.initTransportClient(nx_uint8_t dest, nx_uint8_t srcPort, nx_uint8_t destPort){
         // COMPLETE
@@ -98,25 +109,25 @@ implementation{
 
         connections[socket].src = (uint16_t)srcPort;
 
+        // dbg(TRANSPORT_CHANNEL, "DEBUG: Using socket %i\n");
         if(call Transport.connect(socket, &addr) == SUCCESS){
             return SUCCESS;
         } 
         return FAIL;
     }
 
-    event void clientWriteTimer.fired(){
-        // if all data in the duffer has been written or the buffer is empty, create new data for the buffer
-        // data is from 0 to [transfer]
-        // subtract the amount of data you were able to write(fd, buffer, bufferlen)
-    }
+    // #####################################################################################
+    // Disconnect
+    // #####################################################################################
 
     command error_t Transport.clientClose(nx_uint8_t src, nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort){
         uint8_t i;
 
         for(i = 0; i < MAX_NUM_OF_SOCKETS; i++){
-            if(src == TOS_NODE_ID && connections[i].src == srcPort && connections[i].dest.addr == dest && connections[i].dest.port == destPort){
+            if(connections[i].state == ESTABLISHED && src == TOS_NODE_ID && connections[i].src == srcPort && connections[i].dest.addr == dest && connections[i].dest.port == destPort){
                 if(call Transport.close(i) == SUCCESS){
-                    dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent FIN packet to %i\n", dest);
+                    dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent FIN packet to %i:%i\n", dest, destPort);
+                    // dbg(TRANSPORT_CHANNEL, "DEBUG: src = %i, srcPort = %i, dest = %i, destPort = %i. Socket: %i\n", TOS_NODE_ID, connections[i].src, connections[i].dest.addr, connections[i].dest.port, i);
                     return SUCCESS;
                 }
                 else{
@@ -129,16 +140,26 @@ implementation{
         return FAIL;
     }
 
-    event void disconnectTimer.fired(){
+    task void disconnectSocket(){
         socket_t fd;
-
-        fd = call socketDisconnectionQueue.dequeue();
-
-        connections[fd].state = CLOSED;
-        connections[fd].src = 0;
-        connections[fd].dest.addr = 0;
-        connections[fd].dest.port = 0;
+        if(!call socketDisconnectionQueue.empty()){
+            fd = call socketDisconnectionQueue.dequeue();
+            connections[fd].state = CLOSED;
+            connections[fd].src = 0;
+            connections[fd].dest.addr = 0;
+            connections[fd].dest.port = 0;
+            dbg(TRANSPORT_CHANNEL, "SUCCESS: Connection disconnected and socket %i CLOSED\n", fd);
+        }
+        else{
+            dbg(TRANSPORT_CHANNEL, "DEBUG: No\n");
+        }
     }
+
+    event void disconnectTimer.fired(){
+        post disconnectSocket();
+    }
+
+    // #####################################################################################
 
     command socket_t Transport.socket(){
         // COMPLETED
@@ -174,21 +195,153 @@ implementation{
         if(fd != INVALID_SOCKET || connections[fd].state == ESTABLISHED){
             // Find new socket and copy information to new socket
             newFd = call Transport.socket();
+
+            // dbg(TRANSPORT_CHANNEL, "DEBUG [1] (newFd): srcPort = %i, destPort = %i, state = %i. Socket: %i\n", connections[newFd].src, connections[newFd].dest.port, connections[newFd].state, newFd);
+            // dbg(TRANSPORT_CHANNEL, "DEBUG [1] (fd): srcPort = %i, destPort = %i, state = %i. Socket: %i \n", connections[fd].src, connections[fd].dest.port, connections[fd].state, fd);
+
             connections[newFd] = connections[fd];
             connections[newFd].state = ESTABLISHED;
+            seqNum[newFd] = seqNum[fd];
+
             dbg(TRANSPORT_CHANNEL, "SUCCESS: Socket accepted, can accept new connection\n");
+
+            connections[fd].src = 0;
+            connections[fd].dest.port = 0;
+            connections[fd].dest.addr = 0;
             connections[fd].state = LISTEN;
+            seqNum[fd] = 0;
+
+            // dbg(TRANSPORT_CHANNEL, "DEBUG [2] (newFd): srcPort = %i, destPort = %i, state = %i. Socket: %i \n", connections[newFd].src, connections[newFd].dest.port, connections[newFd].state, newFd);
+            // dbg(TRANSPORT_CHANNEL, "DEBUG [2] (fd): srcPort = %i, destPort = %i, state = %i. Socket: %i \n", connections[fd].src, connections[fd].dest.port, connections[fd].state, fd);
+
             return newFd;
         }
         else{
             return INVALID_SOCKET;
         }
     }
+    
+    // #####################################################################################
+    // Read and Write
+    // #####################################################################################
 
     command uint16_t Transport.write(socket_t fd, uint8_t *buff, uint16_t bufflen){
-        // Change TTL (0) to a value
-        // makePack(&pkt, connections[fd].src, connections[fd].dest.port, 0, PROTOCOL_TCP, connections[fd].seq, buff, bufflen)
+        uint8_t i;
+        uint16_t openWindow;
+        uint16_t sendData;
+
+        if (connections[fd].state != ESTABLISHED){
+            dbg(TRANSPORT_CHANNEL, "ERROR: Cannot write to %i since it is not an ESTABLISHED connection\n", fd);
+            return 0;
+        }
+
+        openWindow = connections[fd].lastWritten - connections[fd].lastAck;
+
+        if (bufflen > openWindow){
+            sendData = openWindow;  
+        }
+        else{
+            sendData = bufflen;        
+        }
+
+        if(sendData > 0){
+            memcpy(connections[fd].sendBuff, buff, sendData);
+            if(call socketTransmitQueue.enqueue(fd) == SUCCESS){
+                connections[fd].lastWritten += sendData;
+                connections[fd].effectiveWindow -= sendData;
+                call transmitTimer.startOneShot(1000);
+                return sendData;
+            }
+        }
+        else{
+            dbg(TRANSPORT_CHANNEL, "ERROR: Cannot write data, buffer is full.\n");
+            return 0;
+        }
     }
+
+    command uint16_t Transport.read(socket_t fd, uint8_t *buff, uint16_t bufflen){
+        uint16_t openWindow;
+        uint16_t readData;
+        
+        if (connections[fd].state != ESTABLISHED){
+            dbg(TRANSPORT_CHANNEL, "ERROR: Cannot read from socket %i since it is not an established connection\n");
+            return 0;
+        }
+
+        openWindow = connections[fd].lastRead - connections[fd].lastRcvd;
+
+        if (openWindow == 0){
+            dbg(TRANSPORT_CHANNEL, "ERROR: No data in the receive buffer\n");
+            return 0;
+        }
+
+        if (bufflen > openWindow){
+            readData = openWindow;
+        }
+        else{       
+            readData = bufflen;
+        }
+        memcpy(buff, connections[fd].rcvdBuff, readData);
+
+        connections[fd].lastRead += readData;
+
+        return readData; 
+    }
+
+    // #####################################################################################
+    // Transmit data task
+    // #####################################################################################
+
+    task void transmitData(){
+        socket_t fd;
+        TCP dataPkt;
+
+        if(!call socketTransmitQueue.empty()){
+            socket = call socketTransmitQueue.dequeue();
+
+            dataPkt.srcPort = connections[fd].src;
+            dataPkt.destPort = connections[fd].dest.port;
+            dataPkt.seq = seqNum[fd];
+            dataPkt.ack = 0;
+            dataPkt.flags = DATA;
+            memcpy(dataPkt.payload, connections[fd].sendBuff, TCP_MAX_PAYLOAD_SIZE);
+            dataPkt.adwindow = connections[fd].effectiveWindow;
+
+            makePack(&pkt, TOS_NODE_ID, connections[fd].dest.addr, 10, PROTOCOL_TCP, seqNum[fd], (uint8_t*)&dataPkt, sizeof(TCP));
+            
+            if(call LinkStateRouting.forward(connections[fd].dest.addr, pkt) == SUCCESS){
+                dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent DATA(SEQ = %i) for socket %i\n", seqNum[fd], fd);
+                seqNum[fd]++;
+            }
+        }
+    }
+
+    event void transmitTimer.fired(){
+        post transmitData();
+    }
+
+    // #####################################################################################
+    // Custom Send
+    // #####################################################################################
+
+    command error_t Transport.writeMsg(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort, uint8_t* message){
+        uint8_t i;
+        uint16_t bytes;
+
+        for(i = 0; i < MAX_NUM_OF_SOCKETS; i++){
+            if(src == TOS_NODE_ID && srcPort == connections[i].src && dest == connections[i].dest.addr && destPort == connections[i].dest.port){
+                bytes = call Transport.write(i, &message, sizeof(message));
+                if(bytes > 0){
+                    dbg(TRANSPORT_CHANNEL, "SUCCESS: Client wrote %i bytes\n", bytes);
+                }
+                else{
+                    dbg(TRANSPORT_CHANNEL, "ERROR: Client could not write\n");
+                }
+            }
+        }
+    }
+
+    // #####################################################################################
 
     command error_t Transport.receive(pack* package){
         // SHOULD BE complete, just need to add accept
@@ -203,9 +356,9 @@ implementation{
             // If listen, then we reply with SYN(SEQ = y) & ACK(x + 1)
             // #####################################################################################
             // DEBUGGING:
-            // dbg(TRANSPORT_CHANNEL, "Dest: %i = %i, Dest Port: %i = %i\n", TOS_NODE_ID, package->dest, connections[i].dest.port, receivedTCP->destPort);
-            // dbg_clear(TRANSPORT_CHANNEL, "Received Flag: %i\n", receivedTCP->flags);
-            // dbg_clear(TRANSPORT_CHANNEL, "%i ",connections[i].state);
+            // dbg(TRANSPORT_CHANNEL, "Socket (%i) INFO:\nSrc Port: %i = %i\nDest: %i = %i, Dest Port: %i = %i\n", i, connections[i].src, receivedTCP->srcPort, TOS_NODE_ID, package->dest, connections[i].src, receivedTCP->destPort);
+            // dbg(TRANSPORT_CHANNEL, "Received Flag: %i\n", receivedTCP->flags);
+            // dbg(TRANSPORT_CHANNEL, "State: %i\n",connections[i].state);
             // #####################################################################################
             
             // socket_port_t src (src = port);
@@ -219,12 +372,16 @@ implementation{
                     dbg(TRANSPORT_CHANNEL, "SUCCESS: Received initial SYN packet from %i.\n", package->src);
 
                     connections[i].state = SYN_RCVD;
+                    connections[i].lastRcvd = receivedTCP->seq;
                     
                     synAckPkt.srcPort = receivedTCP->destPort;
                     synAckPkt.destPort = receivedTCP->srcPort;
                     synAckPkt.seq = seqNum[i];
                     synAckPkt.ack = receivedTCP->seq + 1;
                     synAckPkt.flags = SYNACK;
+                    synAckPkt.adwindow = receivedTCP->adwindow;
+
+                    connections[i].lastSent = seqNum[i];
 
                     // dbg(TRANSPORT_CHANNEL, "DEBUG(SERVER RECEIVE SYN/REPLY WITH SYN-ACK): srcPort: %i, destPort: %i\n", synAckPkt.srcPort, synAckPkt.destPort);
 
@@ -245,6 +402,7 @@ implementation{
                     dbg(TRANSPORT_CHANNEL, "SUCCESS: Received SYN + ACK packet\n");
                     
                     connections[i].state = ESTABLISHED;
+                    connections[i].lastRcvd = receivedTCP->seq;
 
                     ackPkt.srcPort = receivedTCP->destPort;
                     ackPkt.destPort = receivedTCP->srcPort;
@@ -255,6 +413,9 @@ implementation{
                     connections[i].src = ackPkt.srcPort;
                     connections[i].dest.addr = package->src;
                     connections[i].dest.port = ackPkt.destPort;
+                    connections[i].lastAck = ackPkt.ack;
+                    connections[i].lastSent = seqNum[i];
+                    connections[i].effectiveWindow = receivedTCP->adwindow;
 
                     // dbg(TRANSPORT_CHANNEL, "DEBUG(CLIENT RECEIVE SYN-ACK/REPLY WITH ACK): srcPort: %i, destPort: %i\n", ackPkt.srcPort, ackPkt.destPort);
 
@@ -276,6 +437,8 @@ implementation{
                     dbg(TRANSPORT_CHANNEL, "SUCCESS: Received final ACK packet\n");
 
                     connections[i].state = ESTABLISHED;
+                    connections[i].lastAck = receivedTCP->seq;
+                    connections[i].lastRcvd = receivedTCP->seq;
                     
                     // Server's destPort (101) = ackPkt's (Client's) srcPort (101)
                     // Server's srcPort (80) = ackPkt's (Client's) destPort (80)
@@ -285,12 +448,10 @@ implementation{
                     connections[i].effectiveWindow = receivedTCP->adwindow;
 
                     // dbg(TRANSPORT_CHANNEL, "DEBUG(SERVER RECEIVES FINAL ACK): srcPort: %i, dest: %i:%i\n", connections[i].src, connections[i].dest.addr, connections[i].dest.port);
-
-                    // dbg(TRANSPORT_CHANNEL, "SUCCESS: Socket ESTABLISHED: %i:%i for server %i:%i\n", connections[i].dest.addr, connections[i].dest.port, TOS_NODE_ID, connections[i].src);
                     
                     newFd = call Transport.accept(i);
-                    if(call socketConnectionQueue.enqueue(&i) == SUCCESS){
-                        if(call socketConnectionQueue.enqueue(&newFd) == SUCCESS){
+                    if(call socketConnectionQueue.enqueue(i) == SUCCESS){
+                        if(call socketConnectionQueue.enqueue(newFd) == SUCCESS){
                             dbg(TRANSPORT_CHANNEL, "SUCCESS: New connection accepted and socket %i queued\n", newFd);
                             return SUCCESS;
                         }
@@ -311,16 +472,22 @@ implementation{
                 else if (connections[i].state == ESTABLISHED && receivedTCP->flags == FIN && connections[i].dest.addr == package->src && connections[i].dest.port == receivedTCP->srcPort && connections[i].src == receivedTCP->destPort){
                     connections[i].state = CLOSE_WAIT;
 
+                    dbg(TRANSPORT_CHANNEL, "SUCCESS: RECEIVED Initial FIN packet from %i:%i\n", connections[i].dest.addr, connections[i].dest.port);
+
                     ackPkt.srcPort = connections[i].src;
                     ackPkt.destPort = connections[i].dest.port;
                     ackPkt.seq = seqNum[i];
                     ackPkt.ack = receivedTCP->seq + 1;
-                    ackPkt.flags = ACK;
+                    ackPkt.flags = ACK;          
+
+                    connections[i].lastRcvd = receivedTCP->seq;
+                    connections[i].lastAck = ackPkt.ack;
+
 
                     makePack(&pkt, TOS_NODE_ID, package->src, 10, PROTOCOL_TCP, seqNum[i], (uint8_t *) &ackPkt, (sizeof(TCP)));
 
                     if(call LinkStateRouting.forward(package->src, pkt) == SUCCESS){
-                        dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent ACK(%i) packet to acknowledge FIN from %i\n", ackPkt.seq, package->src);
+                        dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent ACK(%i) packet to acknowledge FIN from %i\n", ackPkt.ack, package->src);
                         seqNum[i]++;
                     }
                     else{
@@ -338,10 +505,11 @@ implementation{
                 // (T4) Initiator (Client) of Teardown (Receiving the reply from server)
                 else if (connections[i].state == FIN_WAIT_1 && receivedTCP->flags == ACK && connections[i].dest.addr == package->src && connections[i].dest.port == receivedTCP->srcPort && connections[i].src == receivedTCP->destPort){
                     connections[i].state = FIN_WAIT_2;
+                    connections[i].lastAck = receivedTCP->seq;
                 }
                 // (T5) Initiator (Client) of Teardown (Receiving FIN from recipient)
-                else if (connections[i].state == FIN_WAIT_2 && (receivedTCP->flags & FIN) == FIN){
-                    dbg(TRANSPORT_CHANNEL, "Received Recipient's FIN packet.\n");
+                else if (connections[i].state == FIN_WAIT_2 && receivedTCP->flags == FIN){
+                    dbg(TRANSPORT_CHANNEL, "SUCCESS: Received Recipient's FIN packet.\n");
                     connections[i].state = TIME_WAIT;
 
                     ackPkt.srcPort = connections[i].src;
@@ -349,6 +517,9 @@ implementation{
                     ackPkt.seq = seqNum[i];
                     ackPkt.ack = receivedTCP->seq + 1;
                     ackPkt.flags = ACK;
+
+                    connections[i].lastRcvd = receivedTCP->seq;
+                    connections[i].lastAck = ackPkt.ack;
 
                     makePack(&pkt, TOS_NODE_ID, package->src, 10, PROTOCOL_TCP, seqNum[i], (uint8_t *) &ackPkt, (sizeof(TCP)));
 
@@ -359,22 +530,66 @@ implementation{
                     else{
                         dbg(TRANSPORT_CHANNEL, "ERROR: Failed to send final ACK(%i) for FIN to %i\n", ackPkt.ack, package->src);
                     }
-                    if(call Transport.release(i) == SUCCESS){
+
+                    if(call socketDisconnectionQueue.enqueue(i) == SUCCESS){
+                        call disconnectTimer.startOneShot(1000);
                         return SUCCESS;
                     }
                     else{
+                        dbg(TRANSPORT_CHANNEL, "ERROR: Failed to disconnection from socket %i\n", i);
                         return FAIL;
                     }
+
                 }
                 // #####################################################################################
-            }
-            else{ dbg(TRANSPORT_CHANNEL, "ERROR: Could not handle package since it is not intended for %i, but instead for %i\n", TOS_NODE_ID, package->src); }
-            break;
-        }
-    }
+                // WRITE/READ
+                // #####################################################################################
+                // (WR2) Receives data packet sent. Stores payload in the receive buffer associated to that socket
+                else if (connections[i].state == ESTABLISHED && receivedTCP->flags == DATA){
+                    uint16_t dataSize;
 
-    command uint16_t Transport.read(socket_t fd, uint8_t *buff, uint16_t bufflen){
-        
+                    dbg(TRANSPORT_CHANNEL, "SUCCESS: Received Data Packet. It says:\n %s\n", receivedTCP->payload);
+                    
+                    dataSize = sizeof(receivedTCP->payload);
+
+                    memcpy(&connections[i].rcvdBuff[connections[i].lastRcvd], &receivedTCP->payload, dataSize);
+                    // connections[i].lastRcvd += receivedTCP->length;
+
+                    // connections[i].nextExpected += receivedTCP->length;
+
+                    ackPkt.srcPort = connections[i].src;
+                    ackPkt.destPort = connections[i].dest.port;
+                    ackPkt.seq = seqNum[i];
+                    ackPkt.ack = connections[i].lastRcvd;
+                    ackPkt.flags = ACK;
+                    // Read/Receive Buffer
+                    ackPkt.adwindow = SOCKET_BUFFER_SIZE - (connections[i].lastRcvd - connections[i].lastRead);
+
+                    makePack(&pkt, TOS_NODE_ID, package->src, 10, PROTOCOL_TCP, 0, (uint8_t*)&ackPkt, sizeof(TCP));
+
+                    if(call LinkStateRouting.forward(package->src, pkt) == SUCCESS){
+                        seqNum[i]++;
+                        dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent ACK(%i) to %i's data packet\n", ackPkt.ack, package->src);
+                    }
+                }
+                // (WR3) Receives acknowledgement of data packet. Adjusts the window size accordingly
+                else if (connections[i].state == ESTABLISHED && receivedTCP->flags == ACK){
+                    // connections[i].lastRcvd += dataSize;
+
+                    // connections[i].lastAck = receivedTCP->ack;
+                    // connections[i].effectiveWindow = receivedTCP->adwindow;
+                }
+                else{
+                    // dbg(TRANSPORT_CHANNEL, "ERROR: Out of range or out of order. Check debug\n");
+                    // dbg(TRANSPORT_CHANNEL, "DEBUG: Expected %i, received %i. Socket %i with connection %i:%i to %i:%i\n", connections[i].nextExpected, receivedTCP->seq, i, TOS_NODE_ID, connections[i].src, connections[i].dest.addr, connections[i].dest.port);
+                    continue;
+                }
+            }
+            else{ 
+                dbg(TRANSPORT_CHANNEL, "ERROR: Could not handle package since it is not intended for %i, but instead for %i\n", TOS_NODE_ID, package->src); 
+                return FAIL;
+            }
+        }
     }
 
     command error_t Transport.connect(socket_t fd, socket_addr_t * addr){
@@ -386,14 +601,14 @@ implementation{
             return FAIL;
         }
 
-        dbg(TRANSPORT_CHANNEL, "Starting Connection\n");
-
         synPkt.srcPort = connections[fd].src;
         synPkt.destPort = (uint16_t)addr->port;
         synPkt.seq = seqNum[fd];
         synPkt.ack = 0;
         synPkt.flags = SYN;
         synPkt.adwindow = SOCKET_BUFFER_SIZE;
+
+        connections[fd].lastSent = seqNum[fd];
 
         // dbg(TRANSPORT_CHANNEL, "DEBUG(CLIENT SENDS INITIAL SYN): srcPort: %i, destPort: %i\n", synPkt.srcPort, synPkt.destPort);
 
@@ -403,7 +618,7 @@ implementation{
         if(call LinkStateRouting.forward(addr->addr, pkt) == SUCCESS){
             dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent Connection (SYN(SEQ = %i)) Request to %i\n", synPkt.seq, addr->addr);
             seqNum[fd]++;
-            call socketConnectionQueue.enqueue(&fd);
+            // call socketConnectionQueue.enqueue(fd);
             connections[fd].state = SYN_SENT;
             return SUCCESS;
         }
@@ -437,6 +652,8 @@ implementation{
         finPkt.ack = 0;
         finPkt.flags = FIN;
 
+        connections[fd].lastSent = finPkt.seq;
+
         // (T1) Calling close from client to server on socket
         if(connections[fd].state == ESTABLISHED){
             connections[fd].state = FIN_WAIT_1;
@@ -444,6 +661,12 @@ implementation{
         // (T3) Recipient (server) calls for .close
         else if(connections[fd].state == CLOSE_WAIT){
             connections[fd].state = LAST_ACK;
+            if(call socketDisconnectionQueue.enqueue(fd) == SUCCESS){
+                call disconnectTimer.startOneShot(100);
+            }
+            else{
+                dbg(TRANSPORT_CHANNEL, "ERROR: Cannot enqueue and disconnect from socket %i", fd);
+            }   
         }
 
         makePack(&pkt, TOS_NODE_ID, connections[fd].dest.addr, 10, PROTOCOL_TCP, seqNum[fd], (uint8_t*)&finPkt, sizeof(TCP));
@@ -455,7 +678,7 @@ implementation{
         else{
             return FAIL;
         }
-    }
+    } 
     command error_t Transport.release(socket_t fd){
         // COMPLETE
         connections[fd].state = CLOSED;
