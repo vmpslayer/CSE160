@@ -21,7 +21,7 @@ interface Transport{
    // command error_t initTransportClient(nx_uint8_t dest, nx_uint8_t srcPort, nx_uint8_t destPort, uint16_t transfer);
    command error_t initTransportClient(nx_uint8_t dest, nx_uint8_t srcPort, nx_uint8_t destPort);
    command error_t clientClose(nx_uint8_t src, nx_uint8_t dest, nx_uint16_t srcPort, nx_uint16_t destPort);
-   command error_t writeMsg(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort, uint8_t* message);
+   command error_t writeMsg(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort);
    /**
     * Get a socket if there is one available.
     * @Side Client/Server

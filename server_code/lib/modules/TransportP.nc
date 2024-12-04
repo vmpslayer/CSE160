@@ -22,7 +22,10 @@ module TransportP{
 implementation{
     socket_store_t connections[MAX_NUM_OF_SOCKETS];
     socket_t socket;
-    // uint8_t windowSize = 5;
+    uint8_t windowSize = 5;
+    uint16_t sendData;
+    uint16_t readData;
+    uint16_t offset = 0;
     uint8_t retryCount = 0;
     uint16_t seqNum[MAX_NUM_OF_SOCKETS];
     Routing forwardingTable[MAX_NEIGHBORS];
@@ -199,7 +202,7 @@ implementation{
         synPkt.seq = seqNum[fd];
         synPkt.ack = 0;
         synPkt.flags = SYN;
-        synPkt.adwindow = SOCKET_BUFFER_SIZE;
+        synPkt.adwindow = windowSize;
 
         connections[fd].lastSent = seqNum[fd];
 
@@ -333,7 +336,7 @@ implementation{
             // If listen, then we reply with SYN(SEQ = y) & ACK(x + 1)
             // #####################################################################################
             // DEBUGGING:
-            // dbg(TRANSPORT_CHANNEL, "Socket (%i) INFO:\nSrc Port: %i = %i\nDest: %i = %i, Dest Port: %i = %i\n", i, connections[i].src, receivedTCP->srcPort, TOS_NODE_ID, package->dest, connections[i].src, receivedTCP->destPort);
+            // dbg(TRANSPORT_CHANNEL, "Socket (%i) INFO:\nSrc Port: %i = %i\nDest: %i = %i, Dest Port: %i = %i\n", i, connections[i].src, receivedTCP->destPort, TOS_NODE_ID, package->dest, connections[i].dest.port, receivedTCP->srcPort);
             // dbg(TRANSPORT_CHANNEL, "Received Flag: %i\n", receivedTCP->flags);
             // dbg(TRANSPORT_CHANNEL, "State: %i\n",connections[i].state);
             // #####################################################################################
@@ -379,13 +382,13 @@ implementation{
                     // dbg(TRANSPORT_CHANNEL, "SUCCESS: Received SYN + ACK packet\n");
                     
                     connections[i].state = ESTABLISHED;
-                    connections[i].lastRcvd = receivedTCP->seq;
 
                     ackPkt.srcPort = receivedTCP->destPort;
                     ackPkt.destPort = receivedTCP->srcPort;
                     ackPkt.seq = seqNum[i];
                     ackPkt.ack = receivedTCP->seq + 1;
                     ackPkt.flags = ACK;
+                    ackPkt.adwindow = receivedTCP->adwindow;
 
                     connections[i].src = ackPkt.srcPort;
                     connections[i].dest.addr = package->src;
@@ -423,6 +426,7 @@ implementation{
                     connections[i].dest.addr = package->src;
                     connections[i].dest.port = receivedTCP->srcPort;
                     connections[i].effectiveWindow = receivedTCP->adwindow;
+
 
                     // dbg(TRANSPORT_CHANNEL, "DEBUG(SERVER RECEIVES FINAL ACK): srcPort: %i, dest: %i:%i\n", connections[i].src, connections[i].dest.addr, connections[i].dest.port);
                     
@@ -476,7 +480,7 @@ implementation{
                         return SUCCESS;
                     }
                     else{
-                        dbg(TRANSPORT_CHANNEL, "ERROR: Failed to disconnection from socket %i\n", i);
+                        dbg(TRANSPORT_CHANNEL, "ERROR: Failed to disconnect from socket %i\n", i);
                         return FAIL;
                     }
 
@@ -495,7 +499,7 @@ implementation{
                         ackPkt.destPort = connections[i].dest.port;
                         ackPkt.seq = seqNum[i];
                         ackPkt.ack = receivedTCP->seq + 1;
-                        ackPkt.flags = ACK;          
+                        ackPkt.flags = ACK;        
 
                         connections[i].lastRcvd = receivedTCP->seq;
                         connections[i].lastAck = ackPkt.ack;
@@ -522,59 +526,87 @@ implementation{
                     // #####################################################################################
                     // WRITE/READ
                     // #####################################################################################
-                    // (WR2) Receives data packet sent. Stores payload in the receive buffer associated to that socket
+                    // (R1) Receives data packet sent. Stores payload in the receive buffer associated to that socket
                     if (receivedTCP->flags == DATA && connections[i].lastRcvd + 1 == receivedTCP->seq && connections[i].dest.addr == package->src && connections[i].dest.port == receivedTCP->srcPort && connections[i].src == receivedTCP->destPort){
-                        uint16_t dataSize;
+                        uint16_t packets;                      
 
-                        // dbg(TRANSPORT_CHANNEL, "SUCCESS: Received Data Packet from socket %i. It says:\n%s\n", i, &receivedTCP->payload);
-                        
-                        dataSize = sizeof(ackPkt.payload);
+                        // dbg(TRANSPORT_CHANNEL, "(R1) Socket %i: effectiveWindow: %i, lastRcvd: %i, nextExpected: %i, lastRead: %i\n", i, ackPkt.adwindow, connections[i].lastRcvd, connections[i].nextExpected, connections[i].lastRead);
 
-                        memcpy(&connections[i].rcvdBuff[connections[i].lastRcvd], receivedTCP->payload, sizeof(receivedTCP->payload));
+                        connections[i].lastRcvd = connections[i].lastRcvd + readData;
 
-                        connections[i].lastRcvd = connections[i].lastRcvd + sizeof(receivedTCP->payload);
+                        // dbg(TRANSPORT_CHANNEL, "Read new data:\n");
+                        // for (i = 0; i < 5; i++) {
+                        //     dbg(TRANSPORT_CHANNEL, "payload[%u] = %u\n", i, receivedTCP->payload[i]);
+                        // }
+
+                        // Fill in all information for ackPkt                        
+                        packets = call Transport.read(i, receivedTCP->payload, sizeof(uint8_t*));
+                        if(packets > 0){
+                            dbg(TRANSPORT_CHANNEL, "SUCCESS: Server received %i packets\n", packets);
+
+                            if(call socketReceiveQueue.enqueue(i) == SUCCESS){
+                                // Receive/Read Data Handler
+                                call receiveTimer.startOneShot(100);
+                            }
+                            else{
+                                dbg(TRANSPORT_CHANNEL, "ERROR: Failed to queue socket %i from socket\n", i);
+                                return FAIL;
+                            }
+                        }
 
                         ackPkt.srcPort = connections[i].src;
                         ackPkt.destPort = connections[i].dest.port;
                         ackPkt.seq = connections[i].lastSent;
                         ackPkt.ack = connections[i].lastRcvd + 1;
                         ackPkt.flags = ACK;
-                        // Read/Receive Buffer
-                        ackPkt.adwindow = SOCKET_BUFFER_SIZE - (connections[i].lastRcvd - connections[i].lastRead);
+                        ackPkt.adwindow = receivedTCP->adwindow;
 
                         makePack(&pkt, TOS_NODE_ID, package->src, 10, PROTOCOL_TCP, 0, (uint8_t*)&ackPkt, sizeof(TCP));
 
+                        // Forward the acknowledgement request after we start reading
                         if(call LinkStateRouting.forward(package->src, pkt) == SUCCESS){
                             seqNum[i]++;
-                            // dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent ACK(%i) to %i's data packet\n", ackPkt.ack, package->src);
-                            dbg(TRANSPORT_CHANNEL, "(3) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", i, connections[i].effectiveWindow, connections[i].lastWritten, connections[i].lastAck, connections[i].lastSent);
-                            if(call socketReceiveQueue.enqueue(i) == SUCCESS){
-                                call receiveTimer.startOneShot(1000);
-                                dbg(TRANSPORT_CHANNEL, "CALLED TIMER\n");
-                                return SUCCESS;
-                            }
-                            else{
-                                dbg(TRANSPORT_CHANNEL, "ERROR: Failed to disconnection from socket %i\n", i);
-                                return FAIL;
-                            }
+                            dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent ACK(%i) to %i's data packet\n", ackPkt.ack, package->src);
+                            return SUCCESS;
+                            
                         }
                         else{
                             dbg(TRANSPORT_CHANNEL, "ERROR: Failed to send ACK(%i) to %i's data packet\n", ackPkt.ack, package->src);
+                            return FAIL;
                         }
                     }
-                    // (WR3) Receives acknowledgement of data packet. Adjusts the window size accordingly
-                    if (receivedTCP->flags == ACK && connections[i].dest.addr == package->src && connections[i].dest.port == receivedTCP->srcPort && connections[i].src == receivedTCP->destPort){
+                    // (W4) Receives acknowledgement of data packet. Adjusts the window size accordingly, and sends more packets
+                    if (receivedTCP->flags == ACK && connections[i].src == receivedTCP->destPort && TOS_NODE_ID == package->dest && connections[i].dest.port == receivedTCP->srcPort){
                         uint16_t ackData;
+                        uint16_t packets;
 
+                        // Calculate the difference (amount of packets acknowledged)
                         ackData = receivedTCP->ack - connections[i].lastAck;
-                        if(ackData > 0){
+
+                        if (ackData > 0){
+                            // We acknowledged this byte last
                             connections[i].lastAck = receivedTCP->ack;
-                            connections[i].effectiveWindow += ackData;
-                            dbg(TRANSPORT_CHANNEL, "SUCCESS: Acknowledged %i bytes for socket %i\n", ackData, i);
-                            return SUCCESS;
-                        }
-                        else{
-                            return FAIL;
+
+                            // Change window size
+                            connections[i].effectiveWindow = receivedTCP->adwindow + sendData;
+
+                            offset = offset + sendData;
+
+                            dbg(TRANSPORT_CHANNEL, "Window: %i \n", connections[i].effectiveWindow);
+
+                            packets = call Transport.writeMsg(TOS_NODE_ID, connections[i].src, connections[i].dest.addr, connections[i].dest.port);
+
+                            // dbg(TRANSPORT_CHANNEL, "(W4) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", i, connections[i].effectiveWindow, connections[i].lastWritten, connections[i].lastAck, connections[i].lastSent);
+
+                            if(packets > 0){
+                                dbg(TRANSPORT_CHANNEL, "SUCCESS: Client wrote %i packets\n", packets);
+
+                                if(call socketTransmitQueue.enqueue(i) == SUCCESS){
+                                    call transmitTimer.startOneShot(20000);
+                                }
+                            }
+
+                            dbg(TRANSPORT_CHANNEL, "SUCCESS: Acknowledged %i packets of data\n", ackData);
                         }
                     }
                 }
@@ -593,23 +625,28 @@ implementation{
     // Custom Send
     // #####################################################################################
 
-    command error_t Transport.writeMsg(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort, uint8_t* message){
+    // (W1) Writing the message
+    command error_t Transport.writeMsg(nx_uint8_t src, nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort){
         uint8_t i;
-        uint16_t bytes;
-
-        // for (i = 0; i < 10; i++) {
-        //     dbg(TRANSPORT_CHANNEL, "message[%u] = %u\n", i, (uint8_t*)message[i]);
-        // }
+        uint8_t* msg = "hey there, it's nice to meet you! how are you?";
+        uint16_t packets;
 
         for(i = 0; i < MAX_NUM_OF_SOCKETS; i++){
             if(src == TOS_NODE_ID && srcPort == connections[i].src && dest == connections[i].dest.addr && destPort == connections[i].dest.port){
-                // bytes = call Transport.write(i, &message, 32);
-                dbg(TRANSPORT_CHANNEL, "(1) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", i, connections[i].effectiveWindow, connections[i].lastWritten, connections[i].lastAck, connections[i].lastSent);
-                bytes = call Transport.write(i, "hey there, it's nice to meet you! how are you?", sizeof(message));
-                // dbg(TRANSPORT_CHANNEL, "Socket %i: src = %i:%i (con %i:%i), dest = %i:%i (con %i:%i)\n", i, src, srcPort, TOS_NODE_ID, connections[i].src, dest, destPort, connections[i].dest.addr, connections[i].dest.port);
-                // connections[i].lastWritten += bytes;
-                if(bytes > 0){
-                    // dbg(TRANSPORT_CHANNEL, "SUCCESS: Client wrote %i bytes\n", bytes);
+                // Debug
+                dbg(TRANSPORT_CHANNEL, "(W1) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", i, connections[i].effectiveWindow, connections[i].lastWritten, connections[i].lastAck, connections[i].lastSent);
+
+                // Find out how many packets are written 
+                packets = call Transport.write(i, msg + (offset - sendData), sizeof(msg));
+                if(packets > 0){
+                    // Confirmation
+                    dbg(TRANSPORT_CHANNEL, "SUCCESS: Client wrote %i packets\n", packets);
+                    
+                    // Queue our socket
+                    if(call socketTransmitQueue.enqueue(i) == SUCCESS){
+                        // Start our transmit
+                        call transmitTimer.startOneShot(1000);
+                    }
                 }
                 else{
                     dbg(TRANSPORT_CHANNEL, "ERROR: Client could not write\n");
@@ -622,38 +659,41 @@ implementation{
     // Write/Transmit command and task
     // #####################################################################################
 
+    // (W2) Writing message from buff to sendBuff
     command uint16_t Transport.write(socket_t fd, uint8_t *buff, uint16_t bufflen){
         uint8_t i;
-        uint16_t openWindow;
-        uint16_t sendData;
 
-        // if (connections[fd].state != ESTABLISHED){
-        //     dbg(TRANSPORT_CHANNEL, "ERROR: Cannot write to %i since it is not an ESTABLISHED connection\n", fd);
-        //     return 0;
-        // }
+        // Checks if the socket is established
+        if (connections[fd].state != ESTABLISHED){
+            dbg(TRANSPORT_CHANNEL, "ERROR: Cannot write to %i since it is not an ESTABLISHED connection\n", fd);
+            return 0;
+        }
 
-        openWindow = connections[fd].effectiveWindow - (connections[fd].lastWritten - connections[fd].lastAck);
-
-        if (bufflen > openWindow){
-            sendData = openWindow;  
+        if (bufflen > connections[fd].effectiveWindow){
+            sendData = connections[fd].effectiveWindow;  
         }
         else{
             sendData = bufflen;        
         }
 
+        // dbg(TRANSPORT_CHANNEL, "%i ahhhhhh\n", (connections[i].lastAck - connections[i].lastWritten));
+
         if(sendData > 0){
-            dbg(TRANSPORT_CHANNEL, "%i Open window\n", openWindow);
-            for (i = 0; i < 7; i++) {
-                dbg(TRANSPORT_CHANNEL, "buff[%u] = %u\n", i, buff[i]);
+            memcpy(connections[fd].sendBuff, buff, sendData);
+
+            offset = sendData;
+            
+            dbg(TRANSPORT_CHANNEL, "Write new data:\n");
+            for (i = 0; i < sendData; i++) {
+                dbg(TRANSPORT_CHANNEL, "sendBuff[%u] = %u\n", i, connections[fd].sendBuff[i]);
             }
-            memcpy(connections[fd].sendBuff + connections[fd].lastWritten, buff, sendData);
+
             connections[fd].lastWritten = connections[fd].lastWritten + sendData;
             connections[fd].effectiveWindow = connections[fd].effectiveWindow - sendData;
-            dbg(TRANSPORT_CHANNEL, "(2) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", fd, connections[fd].effectiveWindow, connections[fd].lastWritten, connections[fd].lastAck, connections[fd].lastSent);
-            if(call socketTransmitQueue.enqueue(fd) == SUCCESS){
-                call transmitTimer.startOneShot(10000);
-                return sendData;
-            }
+
+            dbg(TRANSPORT_CHANNEL, "(W2) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", fd, connections[fd].effectiveWindow, connections[fd].lastWritten, connections[fd].lastAck, connections[fd].lastSent);
+            
+            return sendData;
         }
         else{
             dbg(TRANSPORT_CHANNEL, "ERROR: Cannot write data, buffer is full.\n");
@@ -661,7 +701,9 @@ implementation{
         }
     }
 
+    // (W3) Task to transmit the data
     task void transmitData(){
+        uint8_t i;
         socket_t fd;
         TCP dataPkt;
 
@@ -675,19 +717,26 @@ implementation{
             dataPkt.seq = seqNum[fd];
             dataPkt.ack = 0;
             dataPkt.flags = DATA;
-            memcpy(dataPkt.payload, connections[fd].sendBuff, TCP_MAX_PAYLOAD_SIZE);
+            memcpy(dataPkt.payload, connections[fd].sendBuff, sendData);
             dataPkt.adwindow = connections[fd].effectiveWindow;
+
+            // dbg(TRANSPORT_CHANNEL, "Write new data:\n");
+            // for (i = 0; i < sizeof(dataPkt.payload); i++) {
+            //     dbg(TRANSPORT_CHANNEL, "payload[%u] = %u\n", i, dataPkt.payload[i]);
+            // }
 
             makePack(&pkt, TOS_NODE_ID, connections[fd].dest.addr, 10, PROTOCOL_TCP, seqNum[fd], (uint8_t*)&dataPkt, sizeof(TCP));
             
             if(call LinkStateRouting.forward(connections[fd].dest.addr, pkt) == SUCCESS){
                 dbg(TRANSPORT_CHANNEL, "SUCCESS: Sent DATA(SEQ = %i) for socket %i\n", seqNum[fd], fd);
-                connections[fd].lastSent = 
+                connections[fd].lastSent = connections[fd].lastWritten;
                 seqNum[fd]++;
             }
+            dbg(TRANSPORT_CHANNEL, "(W3) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", fd, connections[fd].effectiveWindow, connections[fd].lastWritten, connections[fd].lastAck, connections[fd].lastSent);
         }
     }
 
+    // Timer to call the task
     event void transmitTimer.fired(){
         post transmitData();
     }
@@ -695,63 +744,59 @@ implementation{
     // #####################################################################################
     // Receive/Read command and task
     // #####################################################################################
-    command uint16_t Transport.read(socket_t fd, uint8_t *buff, uint16_t bufflen){
-        uint16_t openWindow;
-        uint16_t readData;
-        uint8_t i;
 
-        for (i = 0; i < 7; i++) {
-            dbg(TRANSPORT_CHANNEL, "buff[%u] = %u\n", i, buff[i]);
-        }
+    // (R2) Reading data from buff to rcvdBuff
+    command uint16_t Transport.read(socket_t fd, uint8_t *buff, uint16_t bufflen){
+        uint8_t i;
         
         if (connections[fd].state != ESTABLISHED){
             dbg(TRANSPORT_CHANNEL, "ERROR: Cannot read from socket %i since it is not an established connection\n");
             return 0;
         }
 
-        openWindow = connections[fd].effectiveWindow - (connections[fd].lastRead - connections[fd].lastRcvd);
-
-        if (openWindow == 0){
-            dbg(TRANSPORT_CHANNEL, "ERROR: No data in the receive buffer\n");
-            return 0;
-        }
-
-        if (bufflen > openWindow){
-            readData = openWindow;
+        if (bufflen > connections[fd].effectiveWindow){
+            readData = connections[fd].effectiveWindow;
         }
         else{       
             readData = bufflen;
         }
-        memcpy(buff, connections[fd].rcvdBuff, readData);
 
-        connections[fd].lastRead = connections[fd].lastRead + readData;
+        if (readData > 0){
+            memcpy(connections[fd].rcvdBuff, buff, readData);
 
-        return readData; 
+            connections[fd].nextExpected = connections[i].lastRcvd + 1;
+            connections[fd].lastRead = connections[fd].lastRead + readData;
+
+            dbg(TRANSPORT_CHANNEL, "(R2) Socket %i: effectiveWindow: %i, lastRcvd: %i, nextExpected: %i, lastRead: %i\n", fd, connections[fd].effectiveWindow, connections[fd].lastRcvd, connections[fd].nextExpected, connections[fd].lastRead);
+
+            return readData;
+        }
+        else{
+            return 0;
+        }
     }
 
-    task void receiveData(){
+    // (R3) Task to actually read the data
+    task void readRcvdData(){
         socket_t fd;
-        uint16_t bytes;
+        uint8_t i;
 
         if(!call socketReceiveQueue.empty()){
             fd = call socketReceiveQueue.dequeue();
-            if (connections[fd].state = ESTABLISHED){
-                bytes = call Transport.read(fd, connections[fd].rcvdBuff, sizeof(connections[fd].rcvdBuff));
-                if(bytes > 0){
-                    dbg(TRANSPORT_CHANNEL, "SUCCESS: Read %i bytes from socket %i\n", bytes, fd);
+            if (connections[fd].state == ESTABLISHED){
+                dbg(TRANSPORT_CHANNEL, "Socket %i: reading data from rcvdBuff\n", fd);
+
+                dbg(TRANSPORT_CHANNEL, "Read new data:\n");
+                for (i = 0; i < readData; i++) {
+                    dbg(TRANSPORT_CHANNEL, "rcvdBuff[%u] = %u\n", i, connections[fd].rcvdBuff[i]);
                 }
-                else{
-                    dbg(TRANSPORT_CHANNEL, "ERROR: Failed to read from socket %i\n", fd);
-                }
-            }
-            else{
-                dbg(TRANSPORT_CHANNEL, "ERROR: Cannot read from socket %i since it is not an ESTABLISHED connection\n", fd);
             }
         }
     }
     
+    // Timer to call the task
     event void receiveTimer.fired(){
-        post receiveData();
+        post readRcvdData();
     }
 
     // #####################################################################################

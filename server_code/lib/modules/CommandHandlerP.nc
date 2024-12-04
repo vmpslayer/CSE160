@@ -90,7 +90,7 @@ implementation{
                 break;
             case CMD_WRITE:
                 dbg(COMMAND_CHANNEL, "Command Type: Write\n");
-                signal CommandHandler.write(buff[0],buff[1],buff[2],buff[3]);
+                signal CommandHandler.write(buff[0],buff[1],buff[2]);
             default:
                 dbg(COMMAND_CHANNEL, "CMD_ERROR: \"%d\" does not match any known commands.\n", msg->id);
                 break;

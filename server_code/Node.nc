@@ -177,9 +177,9 @@ implementation{
       }
    }
 
-   event void CommandHandler.write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort, uint8_t* message){
+   event void CommandHandler.write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort){
       dbg(TRANSPORT_CHANNEL, "Writing message to %i:%i from %i:%i\n", dest, destPort, TOS_NODE_ID, srcPort);
-      call Transport.writeMsg(TOS_NODE_ID, srcPort, dest, destPort, message);
+      call Transport.writeMsg(TOS_NODE_ID, srcPort, dest, destPort);
    }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}

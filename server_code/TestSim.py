@@ -162,8 +162,8 @@ class TestSim:
     def closePort(self, src, srcPort, dest, destPort):
         self.sendCMD(self.CMD_CLOSE_PORT, src, "{0}{1}{2}".format(chr(srcPort),chr(dest),chr(destPort)))
         
-    def write(self, src, srcPort, dest, destPort, msg):
-        self.sendCMD(self.CMD_WRITE, src, "{0}{1}{2}{3}".format(chr(srcPort),chr(dest),chr(destPort),msg))
+    def write(self, src, srcPort, dest, destPort):
+        self.sendCMD(self.CMD_WRITE, src, "{0}{1}{2}".format(chr(srcPort),chr(dest),chr(destPort)))
 
 
 def main():
@@ -194,7 +194,7 @@ def main():
     s.runTime(25)
     s.testClient(2, 101, 1, 80)
     s.runTime(50)    
-    s.write(2, 101, 1, 80, "hi there!")
+    s.write(2, 101, 1, 80)
     s.runTime(50)   
     # s.closePort(2, 101, 1, 80)
     # s.runTime(50)
