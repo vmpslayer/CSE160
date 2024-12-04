@@ -13,5 +13,5 @@ interface CommandHandler{
    event void Dijkstra();
    event void listen(nx_uint8_t src, nx_uint8_t srcPort);
    event void closePort(nx_uint8_t srcPort, nx_uint8_t dest, nx_uint8_t destPort);
-   event void write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort, uint16_t message);
+   event void write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort, uint8_t* message);
 }

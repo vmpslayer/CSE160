@@ -16,6 +16,10 @@ implementation{
     components new QueueC(socket_t, 10) as socketTransmitQueue;
     TransportP.socketTransmitQueue -> socketTransmitQueue;
 
+    // Sockets trying to receive data
+    components new QueueC(socket_t, 10) as socketReceiveQueue;
+    TransportP.socketReceiveQueue -> socketReceiveQueue;
+
     // Sockets trying to disconnect
     components new QueueC(socket_t, 10) as socketDisconnectionQueue;
     TransportP.socketDisconnectionQueue ->socketDisconnectionQueue;
@@ -34,6 +38,10 @@ implementation{
     // Writing to a socket
     components new TimerMilliC() as transmitTimer;
     TransportP.transmitTimer -> transmitTimer;
+
+    // Receive from a socket
+    components new TimerMilliC() as receiveTimer;
+    TransportP.receiveTimer -> receiveTimer;
 
     // Disconnecting from a socket
     components new TimerMilliC() as disconnectTimer;

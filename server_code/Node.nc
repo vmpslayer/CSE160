@@ -177,14 +177,12 @@ implementation{
       }
    }
 
-   event void CommandHandler.write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort, uint16_t message){
+   event void CommandHandler.write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort, uint8_t* message){
       dbg(TRANSPORT_CHANNEL, "Writing message to %i:%i from %i:%i\n", dest, destPort, TOS_NODE_ID, srcPort);
       call Transport.writeMsg(TOS_NODE_ID, srcPort, dest, destPort, message);
    }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}
-
-   event void LinkStateRouting.updateListener(Routing* table, uint8_t length){}
 
    void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t protocol, uint16_t seq, uint8_t* payload, uint8_t length){
       Package->src = src;
