@@ -35,6 +35,8 @@ module Node{
    uses interface LinkStateRouting;
 
    uses interface Transport;
+
+   uses interface Chat;
 }
 
 implementation{
@@ -180,6 +182,26 @@ implementation{
    event void CommandHandler.write(nx_uint8_t srcPort, nx_uint16_t dest, nx_uint16_t destPort){
       dbg(TRANSPORT_CHANNEL, "Writing message to %i:%i from %i:%i\n", dest, destPort, TOS_NODE_ID, srcPort);
       call Transport.writeMsg(TOS_NODE_ID, srcPort, dest, destPort);
+   }
+
+   event void CommandHandler.hello(uint8_t username, nx_uint8_t clientPort){
+      dbg(CHAT_CHANNEL, "Sending Initial Hello to %s with message %s\n", username, clientPort);
+      call Chat.hello(username, clientPort);
+   }
+
+   event void CommandHandler.message(uint8_t msg){
+      dbg(CHAT_CHANNEL, "Broadcasting Message %s to all users connected\n", msg);
+      call Chat.message(msg);
+   }
+
+   event void CommandHandler.whisper(uint8_t username, uint8_t msg){
+      dbg(CHAT_CHANNEL, "Unicasting Message %s to %s\n", username, msg);
+      call Chat.whisper(username, msg);
+   }
+
+   event void CommandHandler.list(){
+      dbg(CHAT_CHANNEL, "Listing all connected users\n");
+      call Chat.list();
    }
    
    event void NeighborDiscovery.updateListener(Neighbor* table, uint8_t length){}

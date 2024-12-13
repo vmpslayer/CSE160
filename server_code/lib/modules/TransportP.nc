@@ -88,27 +88,6 @@ implementation{
         return FAIL;
     }
 
-    event void attemptConnectionTimer.fired(){
-        socket_t fd;
-        
-        fd = call socketConnectionQueue.dequeue();
-
-        if(connections[fd].state == ESTABLISHED){
-            retryCount = 0;
-            return;
-        }
-
-        retryCount++;
-
-        if (retryCount > 3){
-            connections[fd].state = CLOSED;
-            dbg(TRANSPORT_CHANNEL, "ERROR: Could not connect to socket %i after 3 retries...\n", fd);
-            return;
-        }
-
-        call attemptConnectionTimer.startOneShot(1000);
-    }
-
     command error_t Transport.bind(socket_t fd, socket_addr_t *addr){
         // COMPLETE
         if(connections[fd].state == CLOSED){
@@ -183,9 +162,13 @@ implementation{
 
         // dbg(TRANSPORT_CHANNEL, "DEBUG: Using socket %i\n");
         if(call Transport.connect(socket, &addr) == SUCCESS){
+            // dbg(TRANSPORT_CHANNEL, "SUCCESS: Could connect to server %i:%i", addr.addr, addr.port);
             return SUCCESS;
         } 
-        return FAIL;
+        else{
+            dbg(TRANSPORT_CHANNEL, "ERROR: Could not connect to server %i:%i", addr.addr, addr.port);
+            return FAIL;
+        }
     }
 
     command error_t Transport.connect(socket_t fd, socket_addr_t * addr){
@@ -223,6 +206,27 @@ implementation{
             call attemptConnectionTimer.startOneShot(1000);
             return FAIL;
         }
+    }
+
+    event void attemptConnectionTimer.fired(){
+        socket_t fd;
+        
+        fd = call socketConnectionQueue.dequeue();
+
+        if(connections[fd].state == ESTABLISHED){
+            retryCount = 0;
+            return;
+        }
+
+        retryCount++;
+
+        if (retryCount > 3){
+            connections[fd].state = CLOSED;
+            dbg(TRANSPORT_CHANNEL, "ERROR: Could not connect to socket %i after 3 retries...\n", fd);
+            return;
+        }
+
+        call attemptConnectionTimer.startOneShot(1000);
     }
 
     // #####################################################################################
@@ -592,6 +596,8 @@ implementation{
 
                             offset = offset + sendData;
 
+                            connections[i].lastAck = offset;
+
                             dbg(TRANSPORT_CHANNEL, "Window: %i \n", connections[i].effectiveWindow);
 
                             packets = call Transport.writeMsg(TOS_NODE_ID, connections[i].src, connections[i].dest.addr, connections[i].dest.port);
@@ -599,10 +605,14 @@ implementation{
                             // dbg(TRANSPORT_CHANNEL, "(W4) Socket %i: effectiveWindow: %i, lastWritten: %i, lastAck: %i, lastSent: %i\n", i, connections[i].effectiveWindow, connections[i].lastWritten, connections[i].lastAck, connections[i].lastSent);
 
                             if(packets > 0){
-                                dbg(TRANSPORT_CHANNEL, "SUCCESS: Client wrote %i packets\n", packets);
+                                // dbg(TRANSPORT_CHANNEL, "SUCCESS: Client wrote %i packets\n", packets);
 
                                 if(call socketTransmitQueue.enqueue(i) == SUCCESS){
+                                    dbg(TRANSPORT_CHANNEL, "Hi");
                                     call transmitTimer.startOneShot(20000);
+                                }
+                                else{
+                                    dbg(TRANSPORT_CHANNEL, "Bye");
                                 }
                             }
 
@@ -685,7 +695,7 @@ implementation{
             
             dbg(TRANSPORT_CHANNEL, "Write new data:\n");
             for (i = 0; i < sendData; i++) {
-                dbg(TRANSPORT_CHANNEL, "sendBuff[%u] = %u\n", i, connections[fd].sendBuff[i]);
+                dbg(TRANSPORT_CHANNEL, "sendBuff[%u] = %c (encoding: %u)\n", i, connections[fd].sendBuff[i], connections[fd].sendBuff[i]);
             }
 
             connections[fd].lastWritten = connections[fd].lastWritten + sendData;
@@ -710,7 +720,7 @@ implementation{
         if(!call socketTransmitQueue.empty()){
             fd = call socketTransmitQueue.dequeue();
 
-            // dbg(TRANSPORT_CHANNEL, "DEBUG: Socket: %i", fd);
+            dbg(TRANSPORT_CHANNEL, "DEBUG: Socket: %i\n", fd);
 
             dataPkt.srcPort = connections[fd].src;
             dataPkt.destPort = connections[fd].dest.port;
@@ -788,7 +798,7 @@ implementation{
 
                 dbg(TRANSPORT_CHANNEL, "Read new data:\n");
                 for (i = 0; i < readData; i++) {
-                    dbg(TRANSPORT_CHANNEL, "rcvdBuff[%u] = %u\n", i, connections[fd].rcvdBuff[i]);
+                    dbg(TRANSPORT_CHANNEL, "rcvdBuff[%u] = %c (encoding: %u)\n", i, connections[fd].rcvdBuff[i], connections[fd].rcvdBuff[i]);
                 }
             }
         }

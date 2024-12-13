@@ -21,6 +21,10 @@ class TestSim:
     CMD_LISTEN = 13
     CMD_CLOSE_PORT = 14
     CMD_WRITE = 15
+    CMD_HELLO = 16
+    CMD_MSG = 17
+    CMD_WHISPER = 18
+    CMD_LIST = 19
 
 
     # CHANNELS - see includes/channels.h
@@ -36,6 +40,9 @@ class TestSim:
 
     # Project 3
     TRANSPORT_CHANNEL="transport"
+    
+    # Project 4 (God save us all)
+    CHAT_CHANNEL="chat"
 
     # Personal Debuggin Channels for some of the additional models implemented.
     HASHMAP_CHANNEL="hashmap"
@@ -164,6 +171,18 @@ class TestSim:
         
     def write(self, src, srcPort, dest, destPort):
         self.sendCMD(self.CMD_WRITE, src, "{0}{1}{2}".format(chr(srcPort),chr(dest),chr(destPort)))
+        
+    def hello(self, src, username, clientPort):
+        self.sendCMD(self.CMD_HELLO, src, "{0}{1}".format(chr(username),chr(clientPort)))
+    
+    def msg(self, src, msg):
+        self.sendCMD(self.CMD_MSG, src, "{0}".format(msg))
+        
+    def whisper(self, src, username, msg):
+        self.sendCMD(self.CMD_WHISPER, src, "{0}{1}".format(chr(username), msg))
+        
+    def listuser(self, src):
+        self.sendCMD(self.CMD_LIST, src)
 
 
 def main():
@@ -176,26 +195,29 @@ def main():
     # s.addChannel(s.GENERAL_CHANNEL)
     # s.addChannel(s.NEIGHBOR_CHANNEL)
     # s.addChannel(s.FLOODING_CHANNEL)
-    # s.addChannel(s.ROUTING_CHANNEL)
+    s.addChannel(s.ROUTING_CHANNEL)
     s.addChannel(s.TRANSPORT_CHANNEL)
+    s.addChannel(s.CHAT_CHANNEL)
 
     s.runTime(20)
     
     
     for i in range(20):
         s.linkStateDMP(i)
-        s.runTime(25)
+        s.runTime(100)
     
     for i in range(20):    
         s.dijkstra(i)
-        s.runTime(25)    
+        s.runTime(100)  
+        
+    # s.runTime(100)  
         
     s.testServer(1, 80)
     s.runTime(25)
     s.testClient(2, 101, 1, 80)
     s.runTime(50)    
-    s.write(2, 101, 1, 80)
-    s.runTime(50)   
+    # s.write(2, 101, 1, 80)
+    # s.runTime(50)   
     # s.closePort(2, 101, 1, 80)
     # s.runTime(50)
 

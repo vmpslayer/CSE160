@@ -253,25 +253,18 @@ implementation{
         uint8_t hoptoDest = forwardingTable[dest].nextHop;
         uint8_t* payload = myMsg.payload;
 
-        if(dest == TOS_NODE_ID){
-            dbg(ROUTING_CHANNEL, "SUCCESS: Packet was received at destination %d; Message: \n", dest, payload);
-            dbg(TRANSPORT_CHANNEL, "SUCCESS: Packet was received at destination %d; Message: \n", dest, payload);
-            return SUCCESS;
-        }
-
         makePack(&pkt, myMsg.src, dest, myMsg.TTL, myMsg.protocol, myMsg.seq, payload, PACKET_MAX_PAYLOAD_SIZE);
         dbg(ROUTING_CHANNEL, "SENDING: Sending packet to %d \n", dest);
         if(call Sender.send(pkt, dest) == SUCCESS){
-            dbg(ROUTING_CHANNEL, "SUCCESS: Forwarding (using ping) with Link State Routing to Node %d \n", hoptoDest);
+            dbg(ROUTING_CHANNEL, "SUCCESS: Forwarding (using send) with Link State Routing to Node %d \n", hoptoDest);
             // dbg(TRANSPORT_CHANNEL, "SUCCESS: Forwarding (using ping) with Link State Routing to Node %d \n", hoptoDest);
             return SUCCESS;
         }
         else{
-            dbg(ROUTING_CHANNEL, "ERROR: Forwarding (using ping) with Link State Routing to Node %d has failed. Retrying with alternate path...\n", hoptoDest);
+            dbg(ROUTING_CHANNEL, "ERROR: Forwarding (using send) with Link State Routing to Node %d has failed. Retrying with alternate path...\n", hoptoDest);
             // dbg(TRANSPORT_CHANNEL, "ERROR: Forwarding (using ping) with Link State Routing to Node %d has failed. Retrying with alternate path...\n", hoptoDest);
             hoptoDest = forwardingTable[dest].altNextHop;
             call Sender.send(pkt, hoptoDest);
-            return FAIL;
         }
     }
 
