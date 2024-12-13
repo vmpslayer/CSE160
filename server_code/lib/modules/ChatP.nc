@@ -4,13 +4,18 @@ module ChatP{
     uses interface Transport;
 }
 implementation{
+    nx_uint8_t serverAddr;
+    nx_uint8_t serverPort;
+    nx_uint8_t destAddr;
+    nx_uint8_t destPort;
+
     command error_t Chat.hello(uint8_t username, nx_uint8_t clientPort){
         dbg(CHAT_CHANNEL, "HELLO: Initializing Handshake\n");
 
-        nx_uint8_t serverPort = 80;
-        nx_uint8_t serverAddr = 1;
+        serverPort = 80;
+        serverAddr = 1;
 
-        if(call Transport.initTransportclient(serverAddr, clientPort, serverPort) == SUCCESS){
+        if(call Transport.initTransportClient(serverAddr, clientPort, serverPort) == SUCCESS){
             dbg(CHAT_CHANNEL, "HELLO: Handshake initialized successfully\n");
             return SUCCESS;
         }
@@ -23,11 +28,11 @@ implementation{
     command error_t Chat.message(uint8_t msg){
         dbg(CHAT_CHANNEL, "MESSAGE: Broadcasting message\n");
 
-        nx_uint8_t destPort = 80;
-        nx_uint8_t destAddr = 1;
-        nx_uint8_t srcPort = 101;
+        destPort = 80;
+        destAddr = 1;
+        serverPort = 101;
 
-        if(call Transport.writeMsg(TOS_NODE_ID, srcPort, destAddr, destPort) == SUCCESS){
+        if(call Transport.writeMsg(TOS_NODE_ID, serverPort, destAddr, destPort) == SUCCESS){
             dbg(CHAT_CHANNEL, "MESSAGE: Broadcast SUCCESSFUL\n");
         }
         else{

@@ -5,6 +5,7 @@ implementation{
     components ChatP;
     Chat = ChatP.Chat;
 
-    components TransportP as Transport;
+    // Used for TCP handshake
+    components TransportC as Transport;
     ChatP.Transport -> Transport;
 }
